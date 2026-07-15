@@ -2,4 +2,10 @@
 .env
 node_modules/
 .next/
+out/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
 config/profile.local.json
+.DS_Store
+.claude/settings.local.json
