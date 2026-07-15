@@ -14,7 +14,7 @@ Recommended session habits:
 1. Install Node.js LTS from nodejs.org (needed for Next.js itself).
 2. Install Claude Code — use the native installer from the official docs (code.claude.com/docs → setup). Verify with `claude --version`, then `claude doctor`.
 3. Authenticate: run `claude` and sign in (requires a paid Claude plan, or a Console API key for pay-per-use).
-4. Create the GitHub repo `application-kit-agent` (public), clone it, copy this starter pack's files in (README.md, CLAUDE.md, docs/, config/).
+4. Create the GitHub repo `ai-job-application-agent` (public), clone it, copy this starter pack's files in (README.md, CLAUDE.md, docs/, config/).
 5. Get an Anthropic API key from console.anthropic.com for the app itself (separate from Claude Code auth).
 
 ## M1 — Scaffold

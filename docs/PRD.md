@@ -1,4 +1,4 @@
-# PRD — Application Kit Agent
+# PRD — AI Job Application Agent
 
 Owner: Abhijit Paul · Status: v1.0 · Last updated: 2026-07-15
 

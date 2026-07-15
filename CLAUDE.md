@@ -2,7 +2,7 @@
 
 ## What this project is
 
-Application Kit Agent: a Next.js web app where users onboard once and the app compiles a personalized job-application agent from their profile. Full spec in docs/PRD.md; milestones in docs/BUILD_PLAN.md. This repo is also a public portfolio piece — code quality and README clarity matter as much as function.
+AI Job Application Agent: a Next.js web app where users onboard once and the app compiles a personalized job-application agent from their profile. Full spec in docs/PRD.md; milestones in docs/BUILD_PLAN.md. This repo is also a public portfolio piece — code quality and README clarity matter as much as function.
 
 ## Stack and conventions
 

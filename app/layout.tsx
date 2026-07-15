@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Application Kit Agent",
+  title: "AI Job Application Agent",
   description:
     "Onboard once, and compile a personalized job-application agent from your profile.",
 };

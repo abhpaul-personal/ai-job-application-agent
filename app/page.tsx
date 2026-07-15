@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { Logo } from "@/components/Logo";
 
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col items-center gap-3">
+        <Logo className="h-12 w-12" />
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Application Kit Agent
+          AI Job Application Agent
         </h1>
         <p className="max-w-md text-base text-black/60 dark:text-white/60">
           Onboard once, and the app compiles a personalized job-application
