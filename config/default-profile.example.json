@@ -1,0 +1,51 @@
+{
+  "basics": {
+    "name": "Priya Nair",
+    "currentTitle": "Senior Product Manager",
+    "currentCompany": "DemoCommerce Labs",
+    "location": "Bengaluru, India",
+    "noticePeriodDays": 30,
+    "currentCtcLpa": 32,
+    "expectedCtcMinLpa": 40,
+    "expectedCtcMaxLpa": 55,
+    "relocation": "Open to relocation anywhere in India"
+  },
+  "targets": {
+    "roleTypes": ["Senior Product Manager", "Principal Product Manager"],
+    "seniority": "Senior / Principal",
+    "industries": ["B2B SaaS", "E-commerce platforms"],
+    "workMode": ["Hybrid", "Remote"],
+    "experienceFraming": "8-10 years of relevant product experience"
+  },
+  "storyBank": [
+    {
+      "name": "Marketplace Integrations 0-to-1",
+      "one_liner": "Built a partner-integration platform from zero to 40 enterprise partners",
+      "metrics": "40 partners onboarded, 99.9% API uptime, 6-month launch",
+      "themes": ["0-to-1", "API platform", "enterprise"]
+    },
+    {
+      "name": "Checkout Modernisation",
+      "one_liner": "Led migration of legacy checkout serving 2M monthly orders with zero downtime",
+      "metrics": "2M orders/month, zero incidents, 30% latency reduction",
+      "themes": ["migration", "scale", "reliability"]
+    },
+    {
+      "name": "Data Compliance Program",
+      "one_liner": "Delivered privacy-compliance readiness across 5 product lines",
+      "metrics": "5 product lines, audit passed first attempt",
+      "themes": ["compliance", "cross-functional"]
+    }
+  ],
+  "rules": [
+    "Currently employed — never describe as 'ex-' the current company.",
+    "Only claim facts present in this profile; never invent metrics or titles.",
+    "Never flag location as a gap for roles in the candidate's country.",
+    "Flag any role where stated compensation is below the expected CTC minimum.",
+    "Scam screen every JD: generic/free email domains for senior roles, chat-app-first recruitment, any fee or deposit request, role missing from the company careers page."
+  ],
+  "formats": {
+    "coverLetter": "Compact India format: sender details, date, 'Dear Hiring Team,', 2-3 short paragraphs, 3-5 bullet highlights, closing. Plain text.",
+    "recruiterDm": "Under 300 characters: one specific hook from the JD, one credibility point, one clear ask."
+  }
+}
