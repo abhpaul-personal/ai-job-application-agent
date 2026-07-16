@@ -2,22 +2,19 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import {
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+  textareaClass,
+} from "@/components/uiClasses";
 import { compileSystemPrompt } from "@/lib/compilePrompt";
 import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "@/lib/draftProfile";
-import type { Profile } from "@/lib/schema";
+import type { Profile, StoryBankItem } from "@/lib/schema";
 import { WorkModeSchema } from "@/lib/schema";
-import { stubExtractStoryBank } from "@/lib/stubExtractStoryBank";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
-
-const inputClass =
-  "w-full rounded-lg border border-black/10 dark:border-white/15 bg-transparent px-3 py-2 text-sm outline-none focus:border-black/30 dark:focus:border-white/30";
-const textareaClass = `${inputClass} min-h-24 resize-y`;
-const labelClass = "text-sm font-medium";
-const primaryButtonClass =
-  "w-full sm:w-auto rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed";
-const secondaryButtonClass =
-  "w-full sm:w-auto rounded-full border border-black/10 px-6 py-3 text-sm font-medium transition-colors hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -249,16 +246,36 @@ function ExperienceStep({
   onGenerate,
 }: {
   storyBank: Profile["storyBank"];
-  onGenerate: (rawInput: string) => void;
+  onGenerate: (stories: StoryBankItem[]) => void;
 }) {
   const [mode, setMode] = useState<"paste" | "guided">("paste");
   const [cvText, setCvText] = useState("");
   const [guided, setGuided] = useState({ q1: "", q2: "", q3: "", q4: "" });
+  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  function handleGenerate() {
-    const rawInput =
-      mode === "paste" ? cvText : Object.values(guided).join("\n");
-    onGenerate(rawInput);
+  async function handleGenerate() {
+    const rawInput = mode === "paste" ? cvText : Object.values(guided).join("\n");
+    setStatus("loading");
+    setErrorMessage("");
+    try {
+      const res = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "extract", rawInput }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setStatus("error");
+        setErrorMessage(body.error ?? "Something went wrong.");
+        return;
+      }
+      onGenerate(body.data as StoryBankItem[]);
+      setStatus("idle");
+    } catch {
+      setStatus("error");
+      setErrorMessage("Could not reach the server. Check your connection and try again.");
+    }
   }
 
   return (
@@ -321,14 +338,20 @@ function ExperienceStep({
         </div>
       )}
 
-      <button type="button" className={secondaryButtonClass} onClick={handleGenerate}>
-        Generate story bank
+      <button
+        type="button"
+        className={secondaryButtonClass}
+        disabled={status === "loading"}
+        onClick={handleGenerate}
+      >
+        {status === "loading" ? "Generating…" : "Generate story bank"}
       </button>
       <p className="text-xs text-black/50 dark:text-white/50">
-        AI extraction is stubbed for now — this returns placeholder stories
-        regardless of what you write above. The real extraction call ships in
-        a later milestone.
+        Uses what you wrote above to draft a story bank — review and edit it later from Settings.
       </p>
+      {status === "error" && (
+        <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+      )}
 
       {storyBank.length > 0 && (
         <div className="flex flex-col gap-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
@@ -418,8 +441,8 @@ export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }
     setDraft((d) => ({ ...d, targets: { ...d.targets, ...patch } }));
   }
 
-  function handleGenerateStoryBank(rawInput: string) {
-    setDraft((d) => ({ ...d, storyBank: stubExtractStoryBank(rawInput) }));
+  function handleGenerateStoryBank(stories: StoryBankItem[]) {
+    setDraft((d) => ({ ...d, storyBank: stories }));
   }
 
   function handleCreateAgent() {

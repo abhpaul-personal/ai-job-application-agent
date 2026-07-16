@@ -94,3 +94,29 @@ export const ApplicationKitSchema = z.object({
 });
 
 export type ApplicationKit = z.infer<typeof ApplicationKitSchema>;
+
+export const AnalysisRequestSchema = z.object({
+  stage: z.literal("analysis"),
+  profile: ProfileSchema,
+  jd: z.string(),
+});
+
+export const KitRequestSchema = z.object({
+  stage: z.literal("kit"),
+  profile: ProfileSchema,
+  jd: z.string(),
+  analysis: FitAnalysisSchema,
+});
+
+export const ExtractRequestSchema = z.object({
+  stage: z.literal("extract"),
+  rawInput: z.string(),
+});
+
+export const AgentRequestSchema = z.discriminatedUnion("stage", [
+  AnalysisRequestSchema,
+  KitRequestSchema,
+  ExtractRequestSchema,
+]);
+
+export type AgentRequest = z.infer<typeof AgentRequestSchema>;
