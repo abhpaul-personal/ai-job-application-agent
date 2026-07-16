@@ -1,0 +1,33 @@
+{
+  "basics": {
+    "name": "Fixture Example Person",
+    "currentTitle": "Test Engineer",
+    "currentCompany": "Fixture Co",
+    "location": "Test City",
+    "noticePeriodDays": 15,
+    "currentCtcLpa": 20,
+    "expectedCtcMinLpa": 25,
+    "expectedCtcMaxLpa": 30,
+    "relocation": "No"
+  },
+  "targets": {
+    "roleTypes": ["Test Role"],
+    "seniority": "Mid",
+    "industries": ["Testing"],
+    "workMode": ["Remote"],
+    "experienceFraming": "5 years"
+  },
+  "storyBank": [
+    {
+      "name": "Fixture Story",
+      "one_liner": "Did a fixture thing",
+      "metrics": "1 fixture, 100% coverage",
+      "themes": ["fixture"]
+    }
+  ],
+  "rules": ["Never invent fixture data."],
+  "formats": {
+    "coverLetter": "Plain text.",
+    "recruiterDm": "Short."
+  }
+}

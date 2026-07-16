@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`compileSystemPrompt > matches the snapshot for the example profile 1`] = `
+"## Candidate ground truth
+Name: Priya Nair
+Current title: Senior Product Manager at DemoCommerce Labs
+Location: Bengaluru, India
+Notice period: 30 days
+Current CTC: 32 LPA
+Expected CTC: 40-55 LPA
+Relocation: Open to relocation anywhere in India
+
+Target roles: Senior Product Manager, Principal Product Manager
+Seniority: Senior / Principal
+Industries: B2B SaaS, E-commerce platforms
+Work mode: Hybrid, Remote
+Experience framing: 8-10 years of relevant product experience
+
+Story bank:
+1. Marketplace Integrations 0-to-1 — Built a partner-integration platform from zero to 40 enterprise partners (40 partners onboarded, 99.9% API uptime, 6-month launch) [themes: 0-to-1, API platform, enterprise]
+2. Checkout Modernisation — Led migration of legacy checkout serving 2M monthly orders with zero downtime (2M orders/month, zero incidents, 30% latency reduction) [themes: migration, scale, reliability]
+3. Data Compliance Program — Delivered privacy-compliance readiness across 5 product lines (5 product lines, audit passed first attempt) [themes: compliance, cross-functional]
+
+## Hard rules
+- Only claim facts present in this profile; never invent metrics, titles, or experience.
+- Currently employed — never describe as 'ex-' the current company.
+- Only claim facts present in this profile; never invent metrics or titles.
+- Never flag location as a gap for roles in the candidate's country.
+- Flag any role where stated compensation is below the expected CTC minimum.
+- Scam screen every JD: generic/free email domains for senior roles, chat-app-first recruitment, any fee or deposit request, role missing from the company careers page.
+
+## Salary floor
+The candidate's salary floor is 40 LPA. Never fail to flag an opportunity offering below this floor — call it out explicitly as a gap in the fit analysis.
+
+## Scam-screen heuristics
+Screen every job description against these checks:
+- Generic or free email domains used for outreach on senior roles.
+- Recruitment conducted chat-app-first (e.g. WhatsApp/Telegram) instead of official channels.
+- Any request for a fee, deposit, or payment from the candidate.
+- The role is absent from the company's official careers page.
+
+## Output-contract instructions
+Respond with a single JSON object matching the schema for the requested stage. No prose, no markdown code fences, no commentary before or after the JSON."
+`;

@@ -1,0 +1,33 @@
+{
+  "basics": {
+    "name": "Fixture Override Person",
+    "currentTitle": "Senior Test Engineer",
+    "currentCompany": "Override Co",
+    "location": "Override City",
+    "noticePeriodDays": 30,
+    "currentCtcLpa": 40,
+    "expectedCtcMinLpa": 45,
+    "expectedCtcMaxLpa": 55,
+    "relocation": "Yes"
+  },
+  "targets": {
+    "roleTypes": ["Override Role"],
+    "seniority": "Senior",
+    "industries": ["Overriding"],
+    "workMode": ["Hybrid"],
+    "experienceFraming": "10 years"
+  },
+  "storyBank": [
+    {
+      "name": "Override Story",
+      "one_liner": "Did an override thing",
+      "metrics": "1 override, 100% coverage",
+      "themes": ["override"]
+    }
+  ],
+  "rules": ["Never invent override data."],
+  "formats": {
+    "coverLetter": "Plain text override.",
+    "recruiterDm": "Short override."
+  }
+}
