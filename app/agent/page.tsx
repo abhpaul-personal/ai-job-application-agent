@@ -2,10 +2,24 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { inputClass, labelClass, primaryButtonClass, textareaClass } from "@/components/uiClasses";
-import type { FitAnalysis, Profile } from "@/lib/schema";
+import {
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+  textareaClass,
+} from "@/components/uiClasses";
+import { buildKitMarkdown } from "@/lib/kitMarkdown";
+import type { ApplicationKit, FitAnalysis, Profile } from "@/lib/schema";
 
 const PROFILE_STORAGE_KEY = "aka.profile";
+const RECRUITER_DM_LIMIT = 300;
+
+function narrowToTrack(profile: Profile, track: string): Profile {
+  return track
+    ? { ...profile, targets: { ...profile.targets, roleTypes: [track] } }
+    : profile;
+}
 
 const SCAM_FLAG_LABELS: Record<FitAnalysis["scamFlags"][number]["type"], string> = {
   genericEmailDomain: "Generic email domain",
@@ -82,6 +96,132 @@ function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
   );
 }
 
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard access can fail (permissions, insecure context) — the
+      // button just won't flash "Copied!"; nothing else to do about it.
+    }
+  }
+
+  return (
+    <button type="button" className={secondaryButtonClass} onClick={handleCopy}>
+      {copied ? "Copied!" : label}
+    </button>
+  );
+}
+
+const KIT_TABS = ["cv", "cover-letter", "recruiter-dm"] as const;
+type KitTab = (typeof KIT_TABS)[number];
+const KIT_TAB_LABELS: Record<KitTab, string> = {
+  cv: "CV",
+  "cover-letter": "Cover letter",
+  "recruiter-dm": "Recruiter DM",
+};
+
+function ApplicationKitView({
+  kit,
+  recruiterDmDraft,
+  onRecruiterDmChange,
+}: {
+  kit: ApplicationKit;
+  recruiterDmDraft: string;
+  onRecruiterDmChange: (value: string) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<KitTab>("cv");
+  const dmLength = recruiterDmDraft.length;
+  const overLimit = dmLength > RECRUITER_DM_LIMIT;
+  const cvText = [kit.cvHeadline, "", ...kit.cvBullets.map((b) => `- ${b}`)].join("\n");
+
+  function handleDownload() {
+    const markdown = buildKitMarkdown({ ...kit, recruiterDm: recruiterDmDraft });
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "application-kit.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border border-black/10 p-4 dark:border-white/15">
+      <p className="rounded-md border border-black/10 bg-black/5 px-3 py-2 text-xs text-black/70 dark:border-white/15 dark:bg-white/5 dark:text-white/70">
+        AI-drafted — verify every claim before sending.
+      </p>
+
+      <div className="flex gap-2">
+        {KIT_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            className={activeTab === tab ? primaryButtonClass : secondaryButtonClass}
+            onClick={() => setActiveTab(tab)}
+          >
+            {KIT_TAB_LABELS[tab]}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "cv" && (
+        <div className="flex flex-col gap-3">
+          <div>
+            <span className={labelClass}>Headline</span>
+            <p className="text-sm">{kit.cvHeadline}</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className={labelClass}>Bullets</span>
+            <ul className="flex flex-col gap-1 text-sm">
+              {kit.cvBullets.map((bullet, i) => (
+                <li key={i}>{bullet}</li>
+              ))}
+            </ul>
+          </div>
+          <CopyButton text={cvText} />
+        </div>
+      )}
+
+      {activeTab === "cover-letter" && (
+        <div className="flex flex-col gap-3">
+          <p className="whitespace-pre-wrap text-sm">{kit.coverLetter}</p>
+          <CopyButton text={kit.coverLetter} />
+        </div>
+      )}
+
+      {activeTab === "recruiter-dm" && (
+        <div className="flex flex-col gap-3">
+          <textarea
+            className={textareaClass}
+            value={recruiterDmDraft}
+            onChange={(e) => onRecruiterDmChange(e.target.value)}
+          />
+          <p
+            className={`text-xs ${
+              overLimit
+                ? "font-medium text-red-600 dark:text-red-400"
+                : "text-black/50 dark:text-white/50"
+            }`}
+          >
+            {dmLength} / {RECRUITER_DM_LIMIT}
+            {overLimit ? ` — ${dmLength - RECRUITER_DM_LIMIT} characters over the limit` : ""}
+          </p>
+          <CopyButton text={recruiterDmDraft} />
+        </div>
+      )}
+
+      <button type="button" className={secondaryButtonClass} onClick={handleDownload}>
+        Download kit as Markdown
+      </button>
+    </div>
+  );
+}
+
 export default function AgentPage() {
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [selectedTrack, setSelectedTrack] = useState("");
@@ -89,6 +229,10 @@ export default function AgentPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
+  const [kit, setKit] = useState<ApplicationKit | null>(null);
+  const [kitStatus, setKitStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [kitErrorMessage, setKitErrorMessage] = useState("");
+  const [recruiterDmDraft, setRecruiterDmDraft] = useState("");
 
   useEffect(() => {
     // Client-only localStorage read on mount; can't happen during SSR, and
@@ -115,10 +259,12 @@ export default function AgentPage() {
     setStatus("loading");
     setErrorMessage("");
     setAnalysis(null);
+    // A new analysis invalidates any kit generated against the old one.
+    setKit(null);
+    setKitStatus("idle");
+    setKitErrorMessage("");
 
-    const trackProfile: Profile = selectedTrack
-      ? { ...profile, targets: { ...profile.targets, roleTypes: [selectedTrack] } }
-      : profile;
+    const trackProfile = narrowToTrack(profile, selectedTrack);
 
     try {
       const res = await fetch("/api/agent", {
@@ -137,6 +283,36 @@ export default function AgentPage() {
     } catch {
       setStatus("error");
       setErrorMessage("Could not reach the server. Check your connection and try again.");
+    }
+  }
+
+  async function handleGenerateKit() {
+    if (!profile || !analysis) return;
+    setKitStatus("loading");
+    setKitErrorMessage("");
+    setKit(null);
+
+    const trackProfile = narrowToTrack(profile, selectedTrack);
+
+    try {
+      const res = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "kit", profile: trackProfile, jd, analysis }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setKitStatus("error");
+        setKitErrorMessage(body.error ?? "Something went wrong.");
+        return;
+      }
+      const newKit = body.data as ApplicationKit;
+      setKit(newKit);
+      setRecruiterDmDraft(newKit.recruiterDm);
+      setKitStatus("idle");
+    } catch {
+      setKitStatus("error");
+      setKitErrorMessage("Could not reach the server. Check your connection and try again.");
     }
   }
 
@@ -213,6 +389,26 @@ export default function AgentPage() {
       </div>
 
       {analysis && <FitAnalysisView analysis={analysis} />}
+
+      <button
+        type="button"
+        className={primaryButtonClass}
+        disabled={!analysis || kitStatus === "loading"}
+        onClick={handleGenerateKit}
+      >
+        {kitStatus === "loading" ? "Generating application kit…" : "Generate application kit"}
+      </button>
+      {kitStatus === "error" && (
+        <p className="text-sm text-red-600 dark:text-red-400">{kitErrorMessage}</p>
+      )}
+
+      {kit && (
+        <ApplicationKitView
+          kit={kit}
+          recruiterDmDraft={recruiterDmDraft}
+          onRecruiterDmChange={setRecruiterDmDraft}
+        />
+      )}
     </main>
   );
 }

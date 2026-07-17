@@ -4,7 +4,7 @@ import {
   buildExtractUserMessage,
   buildKitUserMessage,
 } from "./agentPrompts";
-import type { FitAnalysis } from "./schema";
+import type { FitAnalysis, Profile } from "./schema";
 
 describe("buildAnalysisUserMessage", () => {
   it("includes the job description verbatim", () => {
@@ -23,12 +23,19 @@ describe("buildKitUserMessage", () => {
     scamFlags: [],
   };
 
-  it("includes both the JD and the approved analysis", () => {
+  const formats: Profile["formats"] = {
+    coverLetter: "Compact India format, plain text.",
+    recruiterDm: "Under 300 characters.",
+  };
+
+  it("includes the JD, the approved analysis, and the format instructions", () => {
     const jd = "Senior PM role at Acme Corp, remote.";
-    const message = buildKitUserMessage(jd, analysis);
+    const message = buildKitUserMessage(jd, analysis, formats);
     expect(message).toContain(jd);
     expect(message).toContain("Checkout Modernisation");
     expect(message).toContain("Strong fit");
+    expect(message).toContain(formats.coverLetter);
+    expect(message).toContain(formats.recruiterDm);
   });
 });
 

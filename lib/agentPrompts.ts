@@ -1,4 +1,4 @@
-import type { FitAnalysis } from "./schema";
+import type { FitAnalysis, Profile } from "./schema";
 
 // Capped, not exact, token budgets — keeps per-run cost down per PRD §6.
 export const MAX_TOKENS = {
@@ -30,15 +30,22 @@ export function buildAnalysisUserMessage(jd: string): string {
 const APPLICATION_KIT_SHAPE = `{
   "cvHeadline": "<string>",
   "cvBullets": ["<string>", "<string>", "<string>", "<string>", "<string>"],
-  "coverLetter": "<string, follow the candidate's coverLetter format from your system prompt>",
+  "coverLetter": "<string, follow the candidate's cover letter format instructions below>",
   "recruiterDm": "<string, under 300 characters>"
 }`;
 
-export function buildKitUserMessage(jd: string, analysis: FitAnalysis): string {
+export function buildKitUserMessage(
+  jd: string,
+  analysis: FitAnalysis,
+  formats: Profile["formats"],
+): string {
   return [
     "Draft an application kit for the following job description, building on the approved fit analysis below.",
     "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences), with exactly 5 cvBullets:",
     APPLICATION_KIT_SHAPE,
+    "",
+    `Cover letter format instructions: ${formats.coverLetter}`,
+    `Recruiter DM format instructions: ${formats.recruiterDm}`,
     "",
     "Job description:",
     jd,

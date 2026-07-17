@@ -32,7 +32,7 @@ function runStage(input: AgentRequest, callModel: CallModel) {
       return runAgentStage({
         callModel,
         system: compileSystemPrompt(input.profile),
-        userMessage: buildKitUserMessage(input.jd, input.analysis),
+        userMessage: buildKitUserMessage(input.jd, input.analysis, input.profile.formats),
         schema: ApplicationKitSchema,
       });
     case "extract":
