@@ -10,9 +10,8 @@ import {
   textareaClass,
 } from "@/components/uiClasses";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
-import type { ApplicationKit, FitAnalysis, Profile } from "@/lib/schema";
+import { PROFILE_STORAGE_KEY, type ApplicationKit, type FitAnalysis, type Profile } from "@/lib/schema";
 
-const PROFILE_STORAGE_KEY = "aka.profile";
 const RECRUITER_DM_LIMIT = 300;
 
 function narrowToTrack(profile: Profile, track: string): Profile {
@@ -342,7 +341,12 @@ export default function AgentPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
+        <Link href="/settings" className="text-sm text-black/60 underline dark:text-white/60">
+          Settings
+        </Link>
+      </div>
 
       <div className="flex flex-col gap-4">
         {roleTypes.length > 1 ? (

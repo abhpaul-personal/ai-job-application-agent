@@ -11,8 +11,7 @@ import {
 } from "@/components/uiClasses";
 import { compileSystemPrompt } from "@/lib/compilePrompt";
 import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "@/lib/draftProfile";
-import type { Profile, StoryBankItem } from "@/lib/schema";
-import { WorkModeSchema } from "@/lib/schema";
+import { PROFILE_STORAGE_KEY, WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
 
@@ -244,9 +243,11 @@ function TargetsStep({
 function ExperienceStep({
   storyBank,
   onGenerate,
+  isEditing,
 }: {
   storyBank: Profile["storyBank"];
   onGenerate: (stories: StoryBankItem[]) => void;
+  isEditing: boolean;
 }) {
   const [mode, setMode] = useState<"paste" | "guided">("paste");
   const [cvText, setCvText] = useState("");
@@ -347,7 +348,8 @@ function ExperienceStep({
         {status === "loading" ? "Generating…" : "Generate story bank"}
       </button>
       <p className="text-xs text-black/50 dark:text-white/50">
-        Uses what you wrote above to draft a story bank — review and edit it later from Settings.
+        Uses what you wrote above to draft a story bank
+        {isEditing ? "." : " — review and edit it later from Settings."}
       </p>
       {status === "error" && (
         <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
@@ -370,9 +372,11 @@ function ExperienceStep({
 function RulesStep({
   rulesText,
   onChange,
+  isEditing,
 }: {
   rulesText: string;
   onChange: (value: string) => void;
+  isEditing: boolean;
 }) {
   return (
     <div className="flex flex-col gap-2">
@@ -384,7 +388,9 @@ function RulesStep({
         />
       </Field>
       <p className="text-xs text-black/50 dark:text-white/50">
-        Prefilled from the default profile — edit or remove any line.
+        {isEditing
+          ? "Prefilled from your current profile — edit or remove any line."
+          : "Prefilled from the default profile — edit or remove any line."}
       </p>
     </div>
   );
@@ -410,13 +416,35 @@ function ReviewStep({ profile }: { profile: Profile }) {
   );
 }
 
-export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }) {
+export function OnboardingWizard({
+  defaultProfile,
+  initialProfile,
+}: {
+  defaultProfile: Profile;
+  initialProfile?: Profile;
+}) {
   const router = useRouter();
+  const isEditing = !!initialProfile;
   const [stepIndex, setStepIndex] = useState(0);
-  const [draft, setDraft] = useState<ProfileDraft>(() => emptyDraft(defaultProfile));
-  const [rulesText, setRulesText] = useState(() => defaultProfile.rules.join("\n"));
-  const [roleTypesText, setRoleTypesText] = useState("");
-  const [industriesText, setIndustriesText] = useState("");
+  const [draft, setDraft] = useState<ProfileDraft>(() =>
+    initialProfile
+      ? {
+          basics: initialProfile.basics,
+          targets: initialProfile.targets,
+          storyBank: initialProfile.storyBank,
+          rules: [...initialProfile.rules],
+        }
+      : emptyDraft(defaultProfile),
+  );
+  const [rulesText, setRulesText] = useState(() =>
+    (initialProfile ?? defaultProfile).rules.join("\n"),
+  );
+  const [roleTypesText, setRoleTypesText] = useState(() =>
+    (initialProfile?.targets.roleTypes ?? []).join(", "),
+  );
+  const [industriesText, setIndustriesText] = useState(() =>
+    (initialProfile?.targets.industries ?? []).join(", "),
+  );
 
   const mergedProfile = useMemo(() => {
     const cleanedDraft: ProfileDraft = {
@@ -446,7 +474,7 @@ export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }
   }
 
   function handleCreateAgent() {
-    localStorage.setItem("aka.profile", JSON.stringify(mergedProfile));
+    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(mergedProfile));
     router.push("/agent");
   }
 
@@ -455,7 +483,9 @@ export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-6 py-12">
       <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Set up your agent</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {isEditing ? "Edit your agent" : "Set up your agent"}
+        </h1>
         <div className="flex items-center justify-center gap-2">
           {STEPS.map((step, i) => (
             <div
@@ -487,9 +517,15 @@ export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }
         />
       )}
       {stepIndex === 2 && (
-        <ExperienceStep storyBank={draft.storyBank} onGenerate={handleGenerateStoryBank} />
+        <ExperienceStep
+          storyBank={draft.storyBank}
+          onGenerate={handleGenerateStoryBank}
+          isEditing={isEditing}
+        />
       )}
-      {stepIndex === 3 && <RulesStep rulesText={rulesText} onChange={setRulesText} />}
+      {stepIndex === 3 && (
+        <RulesStep rulesText={rulesText} onChange={setRulesText} isEditing={isEditing} />
+      )}
       {stepIndex === 4 && <ReviewStep profile={mergedProfile} />}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
@@ -503,7 +539,7 @@ export function OnboardingWizard({ defaultProfile }: { defaultProfile: Profile }
         </button>
         {isLastStep ? (
           <button type="button" className={primaryButtonClass} onClick={handleCreateAgent}>
-            Create my agent
+            {isEditing ? "Save changes" : "Create my agent"}
           </button>
         ) : (
           <button

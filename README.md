@@ -31,7 +31,13 @@ cp .env.example .env.local   # add your ANTHROPIC_API_KEY
 npm run dev
 ```
 
-Your profile is stored locally in your browser (exportable as JSON). No accounts, no database, no profile data leaves your machine except inside API calls to Anthropic.
+Your profile is stored locally in your browser (exportable/importable as JSON from Settings). No accounts, no database, no profile data leaves your machine except inside API calls to Anthropic.
+
+## Deploying
+
+1. Import this repo into [Vercel](https://vercel.com/new).
+2. In the project's **Settings → Environment Variables**, add `ANTHROPIC_API_KEY` (get one from [console.anthropic.com](https://console.anthropic.com)) — this is the same variable `.env.local` uses locally.
+3. Deploy. No build configuration needed; Vercel detects Next.js automatically.
 
 ## Privacy note
 
@@ -40,13 +46,22 @@ The repo ships with a fictional demo profile (`config/default-profile.example.js
 ## Status
 
 - [x] v0 prototype (Claude artifact, single hardcoded profile)
-- [ ] M1 Scaffold
-- [ ] M2 Profile schema + prompt compiler
-- [ ] M3 Onboarding wizard
-- [ ] M4 Fit-analysis agent
-- [ ] M5 Application kit generation + export
-- [ ] M6 Deploy + screenshots
+- [x] M1 Scaffold
+- [x] M2 Profile schema + prompt compiler
+- [x] M3 Onboarding wizard
+- [x] M4 Fit-analysis agent
+- [x] M5 Application kit generation + export
+- [x] M6 Polish, deploy, publish
+
+## Build log
+
+- **M1 — Scaffold**: Next.js App Router + TypeScript + Tailwind v4 scaffold; landing page linking to placeholder `/onboarding` and `/agent` routes.
+- **M2 — Profile schema + prompt compiler**: Zod schemas for `Profile`, `FitAnalysis`, and `ApplicationKit` (`lib/schema.ts`) as the single source of truth; `compileSystemPrompt()` (`lib/compilePrompt.ts`), a pure, snapshot-tested function that renders a profile into the agent's system prompt.
+- **M3 — Onboarding wizard**: `/onboarding`, a 5-step wizard (Basics, Targets, Experience, Rules, Review) that assembles a `Profile` and saves it to `localStorage`. Every field is skippable and inherits sensible defaults; nothing is persisted until the final step.
+- **M4 — Agent API route + fit analysis**: `app/api/agent/route.ts`, the single server-side entry point for all Anthropic calls — the API key never reaches the client. Validates requests, retries once on invalid JSON with a repair instruction, and returns typed errors. `/agent` runs a real fit analysis (score, matched strengths, gaps, salary check, scam flags).
+- **M5 — Application kit + export**: kit generation on `/agent`, gated behind a rendered fit analysis (human-in-the-loop, never optional). Renders CV headline/bullets, cover letter, and an editable recruiter DM with a live character count; copy buttons and a Markdown export.
+- **M6 — Polish, deploy, publish**: `/settings` (edit profile — reuses the onboarding wizard rather than duplicating it; export/import profile JSON; clear all data), a responsive pass at 380px, and this build log.
 
 ---
 
-*Built with Claude Code. PRD and build log in `/docs`.*
+*Built with Claude Code. PRD in `/docs`; build log above.*

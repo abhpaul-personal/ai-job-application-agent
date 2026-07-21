@@ -51,6 +51,8 @@ export const ProfileSchema = z.object({
   formats: FormatsSchema,
 });
 
+export const PROFILE_STORAGE_KEY = "aka.profile";
+
 export type Profile = z.infer<typeof ProfileSchema>;
 export type StoryBankItem = z.infer<typeof StoryBankItemSchema>;
 
