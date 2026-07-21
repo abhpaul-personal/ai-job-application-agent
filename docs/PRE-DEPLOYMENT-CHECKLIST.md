@@ -11,7 +11,7 @@ Paste to Claude Code:
 
 > Add basic abuse protection to the /api/agent route before deployment: a simple rate limit (e.g. max N requests per IP per hour, using an in-memory or Vercel KV-based limiter — recommend the simplest approach that works on Vercel's serverless functions) and a hard daily cap on total API calls across all users, returning a friendly "please try again later" message once hit. This protects the maintainer's personal Anthropic billing since there's no auth yet. Keep it simple — this is a stopgap until Phase 3 auth exists, not a production rate-limiting system.
 
-Ask Claude Code to confirm the exact limits it chose (e.g. "10 requests/IP/hour, 200/day total") — write them here once known: ___________
+Ask Claude Code to confirm the exact limits it chose (e.g. "10 requests/IP/hour, 200/day total") — write them here once known: **10 requests/IP/hour, 200 requests/day total (in-memory limiter, lib/rateLimit.ts — not Vercel KV; see the code comment there for why that's the deliberate call for a stopgap at this traffic level).**
 
 ### A2. Set an Anthropic spending cap
 Independent of A1, as a hard backstop. In console.anthropic.com → Settings → Billing (or Limits), set a monthly spend cap you're comfortable with even in a worst case (e.g. $10-20). This is a safety net under the rate limiter, not a replacement for it.
