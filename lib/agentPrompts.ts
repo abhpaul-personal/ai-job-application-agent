@@ -4,7 +4,12 @@ import type { FitAnalysis, Profile } from "./schema";
 export const MAX_TOKENS = {
   analysis: 1200,
   kit: 1800,
-  extract: 1200,
+  // Extraction has no cap on how many story-bank items the model tries to
+  // generate from a long/dense CV, so a large candidate history can run the
+  // response past the budget mid-array — the repair retry reuses the same
+  // budget, so it fails the same way twice. 1600 (up from 1200) plus the
+  // explicit "at most 8" instruction below are the two halves of the fix.
+  extract: 1600,
 } as const;
 
 const FIT_ANALYSIS_SHAPE = `{
@@ -72,6 +77,7 @@ export const EXTRACT_SYSTEM_PROMPT =
 export function buildExtractUserMessage(rawInput: string): string {
   return [
     "Extract a story bank from the following candidate input.",
+    "Extract at most 8 items — the highest-impact, most distinct stories. A longer candidate history only gets rendered down to its top 8 anyway, so extracting more than that just wastes effort and risks a truncated response.",
     "Respond with ONLY a single JSON array in exactly this shape (no prose, no markdown fences):",
     STORY_BANK_SHAPE,
     "",

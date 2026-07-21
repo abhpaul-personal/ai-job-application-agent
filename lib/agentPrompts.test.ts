@@ -44,4 +44,8 @@ describe("buildExtractUserMessage", () => {
     const rawInput = "Led a team of 5 engineers to ship a payments platform.";
     expect(buildExtractUserMessage(rawInput)).toContain(rawInput);
   });
+
+  it("caps extraction at 8 items to avoid a truncated response on long input", () => {
+    expect(buildExtractUserMessage("some CV text")).toContain("at most 8");
+  });
 });
