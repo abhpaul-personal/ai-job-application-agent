@@ -21,9 +21,12 @@ export function SideNav() {
   const tab2Active = pathname.startsWith("/agent");
 
   return (
-    <nav className="flex shrink-0 flex-row items-center gap-2 border-b border-foreground/10 px-6 py-4 sm:w-56 sm:flex-col sm:items-stretch sm:border-b-0 sm:border-r sm:px-4 sm:py-8">
-      <Link href="/" className="mb-8 hidden items-center gap-2 sm:flex">
-        <Logo className="h-8 w-8" />
+    <nav className="flex shrink-0 flex-row flex-wrap items-center gap-2 border-b border-foreground/10 px-6 py-4 sm:w-56 sm:flex-col sm:items-stretch sm:border-b-0 sm:border-r sm:px-4 sm:py-8">
+      <Link href="/" className="mr-auto flex items-center gap-2 sm:mr-0 sm:mb-8">
+        <Logo className="h-7 w-7 sm:h-8 sm:w-8" />
+        <span className="text-sm font-semibold tracking-tight sm:text-base">
+          Job Kit Agent
+        </span>
       </Link>
       <Link
         href="/settings"
@@ -35,7 +38,7 @@ export function SideNav() {
         href="/agent"
         className={`${NAV_LINK_BASE} ${tab2Active ? NAV_LINK_ACTIVE : NAV_LINK_INACTIVE}`}
       >
-        Run Fit Analysis
+        Run Job Fit Analysis
       </Link>
     </nav>
   );

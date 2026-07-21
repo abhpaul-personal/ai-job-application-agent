@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
 import { Spinner } from "@/components/Spinner";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import {
@@ -14,7 +15,7 @@ import {
 import { compileSystemPrompt } from "@/lib/compilePrompt";
 import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "@/lib/draftProfile";
 import { saveProfile } from "@/lib/profileStorage";
-import { WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
+import { ProfileSchema, WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
 const WIZARD_IN_PROGRESS_KEY = "aka.wizardInProgress";
@@ -447,6 +448,7 @@ export function ProfileWizard({
   const isEditing = !!initialProfile;
   const [stepIndex, setStepIndex] = useState(0);
   const [showRestartNotice, setShowRestartNotice] = useState(false);
+  const [importError, setImportError] = useState("");
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     initialProfile
       ? {
@@ -476,8 +478,8 @@ export function ProfileWizard({
   const hasCheckedProgressFlag = useRef(false);
 
   useEffect(() => {
-    // Case B fix: navigating away mid-wizard (e.g. to Run Fit Analysis and
-    // back) unmounts this component and silently drops all draft state —
+    // Case B fix: navigating away mid-wizard (e.g. to Run Job Fit Analysis
+    // and back) unmounts this component and silently drops all draft state —
     // persisting partial progress would mean lifting every field into
     // sessionStorage, real surface area for a form. Simpler deliberate
     // choice: restart, but say so, via a flag set on mount and cleared on
@@ -523,6 +525,39 @@ export function ProfileWizard({
     setDraft((d) => ({ ...d, storyBank: stories }));
   }
 
+  async function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportError("");
+    try {
+      const text = await file.text();
+      const parsed = ProfileSchema.parse(JSON.parse(text));
+      setDraft({
+        basics: parsed.basics,
+        targets: parsed.targets,
+        storyBank: parsed.storyBank,
+        rules: [...parsed.rules],
+      });
+      setRulesText(parsed.rules.join("\n"));
+      setRoleTypesText(parsed.targets.roleTypes.join(", "));
+      setIndustriesText(parsed.targets.industries.join(", "));
+      setStepIndex(0);
+    } catch (err) {
+      // Same discipline as lib/loadProfile.ts: never echo issue.message back
+      // to the UI — for a ZodError that can quote the actual invalid value
+      // out of the user's own imported file.
+      if (err instanceof z.ZodError) {
+        const fields = err.issues.map((issue) => issue.path.join(".") || "(root)").join(", ");
+        setImportError(`That file doesn't match the profile format — check: ${fields}.`);
+      } else {
+        setImportError(
+          "That file isn't valid JSON. Export a profile from this app first, or check the format.",
+        );
+      }
+    }
+  }
+
   function handleSave() {
     saveProfile(mergedProfile);
     sessionStorage.removeItem(WIZARD_IN_PROGRESS_KEY);
@@ -565,6 +600,25 @@ export function ProfileWizard({
         <p className="rounded-xl border border-fit-stretch/30 bg-fit-stretch/10 px-3 py-2 text-sm text-fit-stretch">
           Your previous edits weren&apos;t saved — starting fresh.
         </p>
+      )}
+
+      {!isEditing && stepIndex === 0 && (
+        <div className="flex flex-col gap-1.5">
+          <label className={`${secondaryButtonClass} cursor-pointer text-center`}>
+            Import profile from JSON
+            <input
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+          </label>
+          <p className="text-xs text-text-secondary">
+            Already have a profile exported from this app? Import it here to pre-fill every
+            step below — you can still review and edit before saving.
+          </p>
+          {importError && <p className="text-sm text-fit-low">{importError}</p>}
+        </div>
       )}
 
       {stepIndex === 0 && (

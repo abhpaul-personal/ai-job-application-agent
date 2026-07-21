@@ -7,12 +7,15 @@ export default function Home() {
     <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
       <div className="flex flex-col items-center gap-3">
         <Logo className="h-12 w-12" />
+        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+          Job Kit Agent
+        </h1>
+        <p className="text-base font-medium text-foreground">
+          Your job search, compiled into an agent.
+        </p>
         <p className="text-sm text-accent-warm">
           Every application is a step. Let&apos;s make this one count.
         </p>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          AI Job Application Agent
-        </h1>
         <p className="max-w-md text-base text-text-secondary">
           Onboard once, and the app compiles a personalized job-application
           agent from your profile.

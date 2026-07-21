@@ -356,7 +356,7 @@ export default function AgentPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Run a job fit analysis</h1>
 
       {weeklyCount > 0 && (
         <p className="-mt-6 text-xs text-text-secondary">
@@ -402,10 +402,10 @@ export default function AgentPage() {
         >
           {status === "loading" ? (
             <span className="inline-flex items-center justify-center gap-2">
-              <Spinner /> Running fit analysis…
+              <Spinner /> Running job fit analysis…
             </span>
           ) : (
-            "Run fit analysis"
+            "Run job fit analysis"
           )}
         </button>
 

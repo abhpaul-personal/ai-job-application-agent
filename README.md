@@ -1,4 +1,4 @@
-# AI Job Application Agent
+# Job Kit Agent
 
 **An agent factory for job seekers.** Complete a short onboarding, and the app compiles a personalized AI agent that analyses any job description against *your* profile — then drafts your tailored CV bullets, cover letter, and recruiter outreach in seconds.
 
