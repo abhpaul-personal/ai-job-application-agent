@@ -43,6 +43,10 @@ Recommended session habits:
 
 Then manually: deploy on Vercel (import the GitHub repo, set ANTHROPIC_API_KEY), record a 90-second demo, take 3 screenshots for the README.
 
+## Beyond M6 (planned, parked)
+
+Two roadmaps exist for after the core MVP: `docs/PHASE2-ROADMAP.md` (Pipeline Intelligence — application tracker, insight cards) and `docs/PHASE3-ROADMAP.md` (Accounts & Persisted Profiles — Google sign-in, database persistence). Both are status NOT STARTED — do not begin either until M6 has shipped and the app is deployed and stable.
+
 ---
 
 ## LinkedIn post skeleton (save for launch day)
