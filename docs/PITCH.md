@@ -32,7 +32,7 @@ This project is as much a demonstration of product-and-AI fluency as it is a job
 
 Live, working end-to-end: onboarding, fit analysis, and application kit generation are built and deployed.
 
-Try it: [Live app](https://ai-job-application-agent-nu.vercel.app/) · [GitHub repo](https://github.com/abhpaul-personal/ai-job-application-agent)
+Try it: [Live app](https://job-kit-agent-nu.vercel.app/) · [GitHub repo](https://github.com/abhpaul-personal/ai-job-application-agent)
 
 ---
 
