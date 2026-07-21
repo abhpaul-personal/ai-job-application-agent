@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "./draftProfile";
+import { emptyDraft, extractImportableFields, mergeProfileDraft, type ProfileDraft } from "./draftProfile";
 import { defaultProfile } from "./loadProfile";
 
 describe("emptyDraft", () => {
@@ -62,5 +62,75 @@ describe("mergeProfileDraft", () => {
     expect(mergeProfileDraft(draft, defaultProfile).formats).toEqual(
       defaultProfile.formats,
     );
+  });
+});
+
+describe("extractImportableFields", () => {
+  it("keeps every field from a fully valid profile and reports nothing skipped", () => {
+    const result = extractImportableFields(defaultProfile);
+    expect(result.basics).toEqual(defaultProfile.basics);
+    expect(result.targets).toEqual(defaultProfile.targets);
+    expect(result.storyBank).toEqual(defaultProfile.storyBank);
+    expect(result.rules).toEqual(defaultProfile.rules);
+    expect(result.skipped).toEqual({
+      basics: [],
+      targets: [],
+      storyBankItems: 0,
+      rulesEntries: 0,
+    });
+  });
+
+  it("drops only the invalid field, keeping the rest of a valid section, and reports it as skipped", () => {
+    const raw = {
+      ...defaultProfile,
+      basics: { ...defaultProfile.basics, email: "not-an-email" },
+    };
+    const result = extractImportableFields(raw);
+    expect(result.basics.email).toBeUndefined();
+    expect(result.basics.name).toBe(defaultProfile.basics.name);
+    expect(result.basics.currentTitle).toBe(defaultProfile.basics.currentTitle);
+    expect(result.skipped.basics).toEqual(["email"]);
+  });
+
+  it("does not count an absent field as skipped, only a present-but-invalid one", () => {
+    const raw = { basics: { name: "Just a name" } };
+    const result = extractImportableFields(raw);
+    expect(result.skipped.basics).toEqual([]);
+  });
+
+  it("drops story bank items that don't validate, keeps ones that do, and counts the drop", () => {
+    const raw = {
+      ...defaultProfile,
+      storyBank: [
+        defaultProfile.storyBank[0],
+        { name: "Missing fields" },
+      ],
+    };
+    const result = extractImportableFields(raw);
+    expect(result.storyBank).toEqual([defaultProfile.storyBank[0]]);
+    expect(result.skipped.storyBankItems).toBe(1);
+  });
+
+  it("drops non-string rules entries, keeps valid ones, and counts the drop", () => {
+    const raw = { ...defaultProfile, rules: ["A real rule", 42, "  ", null] };
+    const result = extractImportableFields(raw);
+    expect(result.rules).toEqual(["A real rule"]);
+    expect(result.skipped.rulesEntries).toBe(3);
+  });
+
+  it("returns everything empty for garbage input", () => {
+    const result = extractImportableFields("not even an object");
+    expect(result.basics).toEqual({});
+    expect(result.targets).toEqual({});
+    expect(result.storyBank).toEqual([]);
+    expect(result.rules).toEqual([]);
+  });
+
+  it("returns everything empty for null", () => {
+    const result = extractImportableFields(null);
+    expect(result.basics).toEqual({});
+    expect(result.targets).toEqual({});
+    expect(result.storyBank).toEqual([]);
+    expect(result.rules).toEqual([]);
   });
 });

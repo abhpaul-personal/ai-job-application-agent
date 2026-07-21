@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
 import { Spinner } from "@/components/Spinner";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import {
@@ -13,12 +12,79 @@ import {
   textareaClass,
 } from "@/components/uiClasses";
 import { compileSystemPrompt } from "@/lib/compilePrompt";
-import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "@/lib/draftProfile";
+import {
+  emptyDraft,
+  extractImportableFields,
+  mergeProfileDraft,
+  type ImportedProfileFields,
+  type ProfileDraft,
+} from "@/lib/draftProfile";
 import { saveProfile } from "@/lib/profileStorage";
-import { ProfileSchema, WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
+import { WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
 const WIZARD_IN_PROGRESS_KEY = "aka.wizardInProgress";
+
+const IMPORT_FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  email: "Email",
+  currentTitle: "Current title",
+  currentCompany: "Current company",
+  location: "Location",
+  noticePeriodDays: "Notice period",
+  currentCtcLpa: "Current CTC",
+  expectedCtcMinLpa: "Expected CTC min",
+  expectedCtcMaxLpa: "Expected CTC max",
+  relocation: "Relocation",
+  roleTypes: "Role types",
+  seniority: "Seniority band",
+  industries: "Industries",
+  workMode: "Work mode",
+  experienceFraming: "Experience framing",
+};
+
+// Turns the raw skip counts into one plain-language sentence, so an import
+// with a bad field (or an unrelated file) says something instead of just
+// going quiet — the wizard fields being pre-filled (or not) is otherwise the
+// only feedback the user gets.
+function describeImport(result: ImportedProfileFields): { tone: "success" | "info" | "none"; text: string } {
+  const importedFieldCount =
+    Object.keys(result.basics).length + Object.keys(result.targets).length;
+  const importedAnything =
+    importedFieldCount > 0 || result.storyBank.length > 0 || result.rules.length > 0;
+  const skippedLabels = [...result.skipped.basics, ...result.skipped.targets].map(
+    (key) => IMPORT_FIELD_LABELS[key] ?? key,
+  );
+
+  if (!importedAnything && skippedLabels.length === 0) {
+    return {
+      tone: "none",
+      text: "That file doesn't look like a profile export — no problem, just fill in the form below.",
+    };
+  }
+
+  const notes: string[] = [];
+  if (skippedLabels.length > 0) {
+    notes.push(
+      `${skippedLabels.join(", ")} couldn't be read — fill ${skippedLabels.length === 1 ? "that" : "those"} in yourself`,
+    );
+  }
+  if (result.skipped.storyBankItems > 0) {
+    notes.push(
+      `${result.skipped.storyBankItems} story-bank ${result.skipped.storyBankItems === 1 ? "entry" : "entries"} couldn't be read`,
+    );
+  }
+  if (result.skipped.rulesEntries > 0) {
+    notes.push(
+      `${result.skipped.rulesEntries} rule${result.skipped.rulesEntries === 1 ? "" : "s"} couldn't be read`,
+    );
+  }
+
+  if (notes.length === 0) {
+    return { tone: "success", text: "Imported cleanly — review each step below before saving." };
+  }
+  return { tone: "info", text: `Imported what we could. ${notes.join("; ")}.` };
+}
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -448,7 +514,10 @@ export function ProfileWizard({
   const isEditing = !!initialProfile;
   const [stepIndex, setStepIndex] = useState(0);
   const [showRestartNotice, setShowRestartNotice] = useState(false);
-  const [importError, setImportError] = useState("");
+  const [importStatus, setImportStatus] = useState<{
+    tone: "success" | "info" | "none" | "error";
+    text: string;
+  } | null>(null);
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     initialProfile
       ? {
@@ -529,33 +598,36 @@ export function ProfileWizard({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    setImportError("");
+    setImportStatus(null);
+    let parsedJson: unknown;
     try {
       const text = await file.text();
-      const parsed = ProfileSchema.parse(JSON.parse(text));
-      setDraft({
-        basics: parsed.basics,
-        targets: parsed.targets,
-        storyBank: parsed.storyBank,
-        rules: [...parsed.rules],
+      parsedJson = JSON.parse(text);
+    } catch {
+      setImportStatus({
+        tone: "error",
+        text: "That file isn't valid JSON. Export a profile from this app first, or check the format.",
       });
-      setRulesText(parsed.rules.join("\n"));
-      setRoleTypesText(parsed.targets.roleTypes.join(", "));
-      setIndustriesText(parsed.targets.industries.join(", "));
-      setStepIndex(0);
-    } catch (err) {
-      // Same discipline as lib/loadProfile.ts: never echo issue.message back
-      // to the UI — for a ZodError that can quote the actual invalid value
-      // out of the user's own imported file.
-      if (err instanceof z.ZodError) {
-        const fields = err.issues.map((issue) => issue.path.join(".") || "(root)").join(", ");
-        setImportError(`That file doesn't match the profile format — check: ${fields}.`);
-      } else {
-        setImportError(
-          "That file isn't valid JSON. Export a profile from this app first, or check the format.",
-        );
-      }
+      return;
     }
+    // Field-by-field, not a full-schema parse: an imported file may be
+    // partial or slightly off. Whatever validates gets pre-filled; whatever
+    // doesn't is left blank for the user to fill in, same as any other
+    // skippable field — reported in a plain-language summary below, not
+    // treated as a hard import error.
+    const result = extractImportableFields(parsedJson);
+    const { basics, targets, storyBank, rules } = result;
+    setDraft((d) => ({
+      basics: { ...d.basics, ...basics },
+      targets: { ...d.targets, ...targets },
+      storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
+      rules: rules.length > 0 ? rules : d.rules,
+    }));
+    if (targets.roleTypes) setRoleTypesText(targets.roleTypes.join(", "));
+    if (targets.industries) setIndustriesText(targets.industries.join(", "));
+    if (rules.length > 0) setRulesText(rules.join("\n"));
+    setImportStatus(describeImport(result));
+    setStepIndex(0);
   }
 
   function handleSave() {
@@ -614,10 +686,23 @@ export function ProfileWizard({
             />
           </label>
           <p className="text-xs text-text-secondary">
-            Already have a profile exported from this app? Import it here to pre-fill every
-            step below — you can still review and edit before saving.
+            Already have a profile exported from this app (or something close)? Import it to
+            pre-fill what matches — anything that doesn&apos;t is left blank for you to fill
+            in, and you can review and edit everything before saving.
           </p>
-          {importError && <p className="text-sm text-fit-low">{importError}</p>}
+          {importStatus && (
+            <p
+              className={`text-sm ${
+                importStatus.tone === "error"
+                  ? "text-fit-low"
+                  : importStatus.tone === "success"
+                    ? "text-fit-strong"
+                    : "text-fit-stretch"
+              }`}
+            >
+              {importStatus.text}
+            </p>
+          )}
         </div>
       )}
 
