@@ -67,7 +67,7 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
   if (profile === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center px-6">
-        <p className="text-sm text-black/50 dark:text-white/50">Loading your profile…</p>
+        <p className="text-sm text-text-secondary">Getting your profile ready…</p>
       </main>
     );
   }
@@ -75,9 +75,10 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
   if (profile === null) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">No profile found</h1>
-        <p className="max-w-md text-black/60 dark:text-white/60">
-          Set up your agent first — your profile is stored locally in your browser.
+        <h1 className="text-2xl font-semibold tracking-tight">Let&apos;s get you set up</h1>
+        <p className="max-w-md text-text-secondary">
+          It only takes a few minutes, and you can skip anything you&apos;re not sure about —
+          your profile stays right here in your browser.
         </p>
         <Link href="/onboarding" className={primaryButtonClass}>
           Set up my agent
@@ -103,7 +104,7 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-6 py-12">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-black/60 dark:text-white/60">
+        <p className="text-sm text-text-secondary">
           {profile.basics.name} — {profile.basics.currentTitle}
         </p>
       </div>
@@ -131,18 +132,22 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
             />
           </label>
         </div>
-        {importError && <p className="text-sm text-red-600 dark:text-red-400">{importError}</p>}
+        {importError && <p className="text-sm text-fit-low">{importError}</p>}
       </div>
 
       <div className="flex flex-col gap-1.5">
         <span className={labelClass}>Danger zone</span>
         {confirmingClear ? (
           <div className="flex flex-col gap-2">
-            <p className="text-sm text-red-600 dark:text-red-400">
+            <p className="text-sm text-fit-low">
               Are you sure? This deletes your profile from this browser and can&apos;t be undone.
             </p>
             <div className="flex gap-2">
-              <button type="button" className={primaryButtonClass} onClick={handleClear}>
+              <button
+                type="button"
+                className="w-full sm:w-auto rounded-full bg-fit-low px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                onClick={handleClear}
+              >
                 Confirm clear
               </button>
               <button

@@ -16,9 +16,18 @@ const FIT_ANALYSIS_SHAPE = `{
   "scamFlags": [{ "type": "genericEmailDomain" | "chatAppFirstRecruitment" | "feeOrDepositRequest" | "missingFromCareersPage" | "other", "detail": "<string>" }]
 }`;
 
+const TONE_INSTRUCTION = [
+  "Write every text field in a warm, encouraging, human tone — the candidate may be deep into a tough job search. Never use dismissive or clinical language (e.g. avoid words like \"skip\", \"reject\", or \"disqualified\").",
+  'For a low-fit verdict, phrase it supportively, e.g. "Save your energy for stronger matches" or "Not the right fit right now" — never as a rejection.',
+  'For a borderline/stretch fit, phrase it as something like "Worth pursuing with prep."',
+  "A strong fit can be stated plainly and warmly.",
+  "This tone guidance is about delivery only, never substance: never soften, hide, or omit real gaps, scam flags, or salary shortfalls. State them calmly and factually — honest, just not harsh.",
+].join(" ");
+
 export function buildAnalysisUserMessage(jd: string): string {
   return [
     "Evaluate the following job description against the candidate profile in your system prompt.",
+    TONE_INSTRUCTION,
     "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences):",
     FIT_ANALYSIS_SHAPE,
     "",

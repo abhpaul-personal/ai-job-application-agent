@@ -30,7 +30,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         {children}
-        <footer className="px-6 py-4 text-center text-xs text-black/40 dark:text-white/40">
+        <footer className="px-6 py-4 text-center text-xs text-text-secondary">
           © {new Date().getFullYear()} Abhijit Paul
         </footer>
       </body>

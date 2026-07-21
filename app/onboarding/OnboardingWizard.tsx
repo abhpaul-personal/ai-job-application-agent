@@ -125,7 +125,7 @@ function BasicsStep({
           />
         </Field>
       </div>
-      <p className="text-xs text-black/50 dark:text-white/50">
+      <p className="text-xs text-text-secondary">
         Expected CTC min becomes the agent&apos;s salary floor.
       </p>
       <Field label="Relocation">
@@ -347,16 +347,16 @@ function ExperienceStep({
       >
         {status === "loading" ? "Generating…" : "Generate story bank"}
       </button>
-      <p className="text-xs text-black/50 dark:text-white/50">
+      <p className="text-xs text-text-secondary">
         Uses what you wrote above to draft a story bank
         {isEditing ? "." : " — review and edit it later from Settings."}
       </p>
       {status === "error" && (
-        <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
+        <p className="text-sm text-fit-low">{errorMessage}</p>
       )}
 
       {storyBank.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+        <div className="flex flex-col gap-2 rounded-2xl border border-foreground/10 p-3">
           <span className={labelClass}>Generated story bank</span>
           {storyBank.map((story) => (
             <div key={story.name} className="text-sm">
@@ -387,7 +387,7 @@ function RulesStep({
           onChange={(e) => onChange(e.target.value)}
         />
       </Field>
-      <p className="text-xs text-black/50 dark:text-white/50">
+      <p className="text-xs text-text-secondary">
         {isEditing
           ? "Prefilled from your current profile — edit or remove any line."
           : "Prefilled from the default profile — edit or remove any line."}
@@ -402,13 +402,13 @@ function ReviewStep({ profile }: { profile: Profile }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1.5">
         <span className={labelClass}>Profile JSON</span>
-        <pre className="max-h-64 overflow-auto rounded-lg border border-black/10 p-3 text-xs dark:border-white/15">
+        <pre className="max-h-64 overflow-auto rounded-2xl border border-foreground/10 p-3 text-xs">
           {JSON.stringify(profile, null, 2)}
         </pre>
       </div>
       <div className="flex flex-col gap-1.5">
         <span className={labelClass}>Compiled system prompt</span>
-        <pre className="max-h-64 overflow-auto rounded-lg border border-black/10 p-3 text-xs dark:border-white/15">
+        <pre className="max-h-64 overflow-auto rounded-2xl border border-foreground/10 p-3 text-xs">
           {prompt}
         </pre>
       </div>
@@ -491,13 +491,13 @@ export function OnboardingWizard({
             <div
               key={step}
               className={`h-1.5 w-8 rounded-full ${
-                i <= stepIndex ? "bg-foreground" : "bg-black/10 dark:bg-white/15"
+                i <= stepIndex ? "bg-foreground" : "bg-foreground/15"
               }`}
               title={step}
             />
           ))}
         </div>
-        <span className="text-xs text-black/50 dark:text-white/50">
+        <span className="text-xs text-text-secondary">
           Step {stepIndex + 1} of {STEPS.length}: {STEPS[stepIndex]}
         </span>
       </div>

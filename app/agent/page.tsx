@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  cardClass,
   inputClass,
   labelClass,
   primaryButtonClass,
   secondaryButtonClass,
   textareaClass,
 } from "@/components/uiClasses";
+import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
 import { PROFILE_STORAGE_KEY, type ApplicationKit, type FitAnalysis, type Profile } from "@/lib/schema";
 
@@ -30,12 +32,10 @@ const SCAM_FLAG_LABELS: Record<FitAnalysis["scamFlags"][number]["type"], string>
 
 function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
   return (
-    <div className="flex flex-col gap-6 rounded-lg border border-black/10 p-4 dark:border-white/15">
-      <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-semibold">{analysis.fitScore}</span>
-        <span className="text-sm text-black/60 dark:text-white/60">
-          / 100 — {analysis.verdict}
-        </span>
+    <div className={`flex flex-col gap-6 p-5 ${cardClass}`}>
+      <div className="flex flex-col gap-1">
+        <span className="text-xl font-semibold">{analysis.verdict}</span>
+        <span className="text-sm text-text-secondary">Fit score: {analysis.fitScore} / 100</span>
       </div>
 
       {analysis.matchedStrengths.length > 0 && (
@@ -54,11 +54,14 @@ function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
       {analysis.gaps.length > 0 && (
         <div className="flex flex-col gap-2">
           <span className={labelClass}>Gaps</span>
-          <ul className="flex flex-col gap-1 text-sm text-black/70 dark:text-white/70">
+          <ul className="flex flex-col gap-1 text-sm text-text-secondary">
             {analysis.gaps.map((gap) => (
               <li key={gap}>{gap}</li>
             ))}
           </ul>
+          <p className="text-sm text-text-secondary italic">
+            Gaps aren&apos;t disqualifiers — they&apos;re your prep list.
+          </p>
         </div>
       )}
 
@@ -66,9 +69,7 @@ function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
         <span className={labelClass}>Salary check</span>
         <p
           className={`text-sm ${
-            analysis.salaryCheck.meetsFloor
-              ? "text-green-700 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
+            analysis.salaryCheck.meetsFloor ? "text-fit-strong" : "text-fit-low"
           }`}
         >
           {analysis.salaryCheck.meetsFloor ? "Meets your floor. " : "Below your floor. "}
@@ -83,7 +84,7 @@ function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
             {analysis.scamFlags.map((flag, i) => (
               <li
                 key={i}
-                className="rounded-md border border-amber-600/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300"
+                className="rounded-xl border border-fit-stretch/30 bg-fit-stretch/10 px-3 py-2 text-sm text-fit-stretch"
               >
                 <span className="font-medium">{SCAM_FLAG_LABELS[flag.type]}:</span> {flag.detail}
               </li>
@@ -150,8 +151,9 @@ function ApplicationKitView({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-black/10 p-4 dark:border-white/15">
-      <p className="rounded-md border border-black/10 bg-black/5 px-3 py-2 text-xs text-black/70 dark:border-white/15 dark:bg-white/5 dark:text-white/70">
+    <div className={`flex flex-col gap-4 p-5 ${cardClass}`}>
+      <p className="text-sm text-accent-warm">Kit ready — that&apos;s one more in.</p>
+      <p className="rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-text-secondary">
         AI-drafted — verify every claim before sending.
       </p>
 
@@ -202,9 +204,7 @@ function ApplicationKitView({
           />
           <p
             className={`text-xs ${
-              overLimit
-                ? "font-medium text-red-600 dark:text-red-400"
-                : "text-black/50 dark:text-white/50"
+              overLimit ? "font-medium text-fit-low" : "text-text-secondary"
             }`}
           >
             {dmLength} / {RECRUITER_DM_LIMIT}
@@ -232,6 +232,15 @@ export default function AgentPage() {
   const [kitStatus, setKitStatus] = useState<"idle" | "loading" | "error">("idle");
   const [kitErrorMessage, setKitErrorMessage] = useState("");
   const [recruiterDmDraft, setRecruiterDmDraft] = useState("");
+  const [weeklyCount, setWeeklyCount] = useState(0);
+
+  useEffect(() => {
+    // Purely decorative counter — a brief flash from 0 to the real value on
+    // mount is an acceptable tradeoff here, unlike the profile load below
+    // which needs the full undefined/null/loaded state machine.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setWeeklyCount(getWeeklyAnalysisCount());
+  }, []);
 
   useEffect(() => {
     // Client-only localStorage read on mount; can't happen during SSR, and
@@ -279,6 +288,7 @@ export default function AgentPage() {
       }
       setAnalysis(body.data as FitAnalysis);
       setStatus("idle");
+      setWeeklyCount(incrementWeeklyAnalysisCount());
     } catch {
       setStatus("error");
       setErrorMessage("Could not reach the server. Check your connection and try again.");
@@ -318,7 +328,7 @@ export default function AgentPage() {
   if (profile === undefined) {
     return (
       <main className="flex flex-1 items-center justify-center px-6">
-        <p className="text-sm text-black/50 dark:text-white/50">Loading your profile…</p>
+        <p className="text-sm text-text-secondary">Getting your profile ready…</p>
       </main>
     );
   }
@@ -326,9 +336,10 @@ export default function AgentPage() {
   if (profile === null) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">No profile found</h1>
-        <p className="max-w-md text-black/60 dark:text-white/60">
-          Set up your agent first — your profile is stored locally in your browser.
+        <h1 className="text-2xl font-semibold tracking-tight">Let&apos;s get you set up</h1>
+        <p className="max-w-md text-text-secondary">
+          It only takes a few minutes, and you can skip anything you&apos;re not sure about —
+          your profile stays right here in your browser.
         </p>
         <Link href="/onboarding" className={primaryButtonClass}>
           Set up my agent
@@ -343,10 +354,16 @@ export default function AgentPage() {
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
-        <Link href="/settings" className="text-sm text-black/60 underline dark:text-white/60">
+        <Link href="/settings" className="text-sm text-text-secondary underline">
           Settings
         </Link>
       </div>
+
+      {weeklyCount > 0 && (
+        <p className="-mt-6 text-xs text-text-secondary">
+          {weeklyCount} {weeklyCount === 1 ? "role" : "roles"} analyzed this week
+        </p>
+      )}
 
       <div className="flex flex-col gap-4">
         {roleTypes.length > 1 ? (
@@ -365,7 +382,7 @@ export default function AgentPage() {
             </select>
           </label>
         ) : (
-          <p className="text-sm text-black/60 dark:text-white/60">Track: {roleTypes[0]}</p>
+          <p className="text-sm text-text-secondary">Track: {roleTypes[0]}</p>
         )}
 
         <label className="flex flex-col gap-1.5">
@@ -374,7 +391,7 @@ export default function AgentPage() {
             className={`${textareaClass} min-h-48`}
             value={jd}
             onChange={(e) => setJd(e.target.value)}
-            placeholder="Paste the job description here"
+            placeholder="Paste it in — we'll look at it together."
           />
         </label>
 
@@ -387,9 +404,7 @@ export default function AgentPage() {
           {status === "loading" ? "Running fit analysis…" : "Run fit analysis"}
         </button>
 
-        {status === "error" && (
-          <p className="text-sm text-red-600 dark:text-red-400">{errorMessage}</p>
-        )}
+        {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
       </div>
 
       {analysis && <FitAnalysisView analysis={analysis} />}
@@ -402,9 +417,7 @@ export default function AgentPage() {
       >
         {kitStatus === "loading" ? "Generating application kit…" : "Generate application kit"}
       </button>
-      {kitStatus === "error" && (
-        <p className="text-sm text-red-600 dark:text-red-400">{kitErrorMessage}</p>
-      )}
+      {kitStatus === "error" && <p className="text-sm text-fit-low">{kitErrorMessage}</p>}
 
       {kit && (
         <ApplicationKitView
