@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@/components/Spinner";
 import {
   inputClass,
   labelClass,
@@ -345,7 +346,13 @@ function ExperienceStep({
         disabled={status === "loading"}
         onClick={handleGenerate}
       >
-        {status === "loading" ? "Generating…" : "Generate story bank"}
+        {status === "loading" ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Spinner /> Generating…
+          </span>
+        ) : (
+          "Generate story bank"
+        )}
       </button>
       <p className="text-xs text-text-secondary">
         Uses what you wrote above to draft a story bank

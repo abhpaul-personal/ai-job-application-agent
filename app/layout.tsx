@@ -31,7 +31,15 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <footer className="px-6 py-4 text-center text-xs text-text-secondary">
-          © {new Date().getFullYear()} Abhijit Paul
+          © {new Date().getFullYear()}{" "}
+          <a
+            href="https://www.linkedin.com/in/abhpaul"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-foreground"
+          >
+            Abhijit Paul
+          </a>
         </footer>
       </body>
     </html>

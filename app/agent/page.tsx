@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Spinner } from "@/components/Spinner";
 import {
   cardClass,
   inputClass,
@@ -349,6 +350,9 @@ export default function AgentPage() {
   }
 
   const roleTypes = profile.targets.roleTypes;
+  const hasWarnings = analysis
+    ? analysis.fitScore < 50 || !analysis.salaryCheck.meetsFloor || analysis.scamFlags.length > 0
+    : false;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
@@ -401,7 +405,13 @@ export default function AgentPage() {
           disabled={jd.trim() === "" || status === "loading"}
           onClick={handleRunAnalysis}
         >
-          {status === "loading" ? "Running fit analysis…" : "Run fit analysis"}
+          {status === "loading" ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <Spinner /> Running fit analysis…
+            </span>
+          ) : (
+            "Run fit analysis"
+          )}
         </button>
 
         {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
@@ -409,13 +419,25 @@ export default function AgentPage() {
 
       {analysis && <FitAnalysisView analysis={analysis} />}
 
+      {hasWarnings && (
+        <p className="text-sm text-fit-low">
+          This one has real gaps — worth a second look before you generate a kit.
+        </p>
+      )}
+
       <button
         type="button"
         className={primaryButtonClass}
         disabled={!analysis || kitStatus === "loading"}
         onClick={handleGenerateKit}
       >
-        {kitStatus === "loading" ? "Generating application kit…" : "Generate application kit"}
+        {kitStatus === "loading" ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Spinner /> Generating application kit…
+          </span>
+        ) : (
+          "Generate application kit"
+        )}
       </button>
       {kitStatus === "error" && <p className="text-sm text-fit-low">{kitErrorMessage}</p>}
 
