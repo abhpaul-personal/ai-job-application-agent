@@ -342,7 +342,7 @@ export default function AgentPage() {
           It only takes a few minutes, and you can skip anything you&apos;re not sure about —
           your profile stays right here in your browser.
         </p>
-        <Link href="/onboarding" className={primaryButtonClass}>
+        <Link href="/settings" className={primaryButtonClass}>
           Set up my agent
         </Link>
       </main>
@@ -356,12 +356,7 @@ export default function AgentPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
-        <Link href="/settings" className="text-sm text-text-secondary underline">
-          Settings
-        </Link>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Run a fit analysis</h1>
 
       {weeklyCount > 0 && (
         <p className="-mt-6 text-xs text-text-secondary">

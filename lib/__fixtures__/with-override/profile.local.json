@@ -1,6 +1,7 @@
 {
   "basics": {
     "name": "Fixture Override Person",
+    "email": "fixture.override@example.com",
     "currentTitle": "Senior Test Engineer",
     "currentCompany": "Override Co",
     "location": "Override City",

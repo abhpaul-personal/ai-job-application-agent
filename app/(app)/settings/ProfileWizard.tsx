@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Spinner } from "@/components/Spinner";
+import { useProfileStatus } from "@/components/ProfileStatusContext";
 import {
   inputClass,
   labelClass,
@@ -12,9 +13,11 @@ import {
 } from "@/components/uiClasses";
 import { compileSystemPrompt } from "@/lib/compilePrompt";
 import { emptyDraft, mergeProfileDraft, type ProfileDraft } from "@/lib/draftProfile";
-import { PROFILE_STORAGE_KEY, WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
+import { saveProfile } from "@/lib/profileStorage";
+import { WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
+const WIZARD_IN_PROGRESS_KEY = "aka.wizardInProgress";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -43,6 +46,15 @@ function BasicsStep({
           value={draft.name ?? ""}
           placeholder={defaults.name}
           onChange={(e) => onChange({ name: e.target.value })}
+        />
+      </Field>
+      <Field label="Email">
+        <input
+          type="email"
+          className={inputClass}
+          value={draft.email ?? ""}
+          placeholder={defaults.email}
+          onChange={(e) => onChange({ email: e.target.value })}
         />
       </Field>
       <Field label="Current title">
@@ -358,9 +370,7 @@ function ExperienceStep({
         Uses what you wrote above to draft a story bank
         {isEditing ? "." : " — review and edit it later from Settings."}
       </p>
-      {status === "error" && (
-        <p className="text-sm text-fit-low">{errorMessage}</p>
-      )}
+      {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
 
       {storyBank.length > 0 && (
         <div className="flex flex-col gap-2 rounded-2xl border border-foreground/10 p-3">
@@ -423,16 +433,20 @@ function ReviewStep({ profile }: { profile: Profile }) {
   );
 }
 
-export function OnboardingWizard({
+export function ProfileWizard({
   defaultProfile,
   initialProfile,
+  onSaved,
 }: {
   defaultProfile: Profile;
   initialProfile?: Profile;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
+  const { refresh } = useProfileStatus();
   const isEditing = !!initialProfile;
   const [stepIndex, setStepIndex] = useState(0);
+  const [showRestartNotice, setShowRestartNotice] = useState(false);
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     initialProfile
       ? {
@@ -452,6 +466,35 @@ export function OnboardingWizard({
   const [industriesText, setIndustriesText] = useState(() =>
     (initialProfile?.targets.industries ?? []).join(", "),
   );
+  // Guards the mount effect below against React Strict Mode's dev-only
+  // double-invocation: the effect reads a sessionStorage flag then writes
+  // it, which isn't idempotent — a second invocation would read back its
+  // own write and show the notice on a genuinely first visit. The ref
+  // (unlike the flag itself) survives Strict Mode's synthetic
+  // unmount/remount, so this makes the effect body run its real logic only
+  // once per actual mount.
+  const hasCheckedProgressFlag = useRef(false);
+
+  useEffect(() => {
+    // Case B fix: navigating away mid-wizard (e.g. to Run Fit Analysis and
+    // back) unmounts this component and silently drops all draft state —
+    // persisting partial progress would mean lifting every field into
+    // sessionStorage, real surface area for a form. Simpler deliberate
+    // choice: restart, but say so, via a flag set on mount and cleared on
+    // successful save. Tradeoff: the flag is set on mount, not on first
+    // actual edit, so opening the wizard and leaving untouched shows one
+    // harmless unnecessary notice next time.
+    if (hasCheckedProgressFlag.current) return;
+    hasCheckedProgressFlag.current = true;
+
+    /* eslint-disable react-hooks/set-state-in-effect */
+    const wasInProgress = sessionStorage.getItem(WIZARD_IN_PROGRESS_KEY) === "true";
+    if (wasInProgress) {
+      setShowRestartNotice(true);
+    }
+    sessionStorage.setItem(WIZARD_IN_PROGRESS_KEY, "true");
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, []);
 
   const mergedProfile = useMemo(() => {
     const cleanedDraft: ProfileDraft = {
@@ -480,15 +523,24 @@ export function OnboardingWizard({
     setDraft((d) => ({ ...d, storyBank: stories }));
   }
 
-  function handleCreateAgent() {
-    localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(mergedProfile));
-    router.push("/agent");
+  function handleSave() {
+    saveProfile(mergedProfile);
+    sessionStorage.removeItem(WIZARD_IN_PROGRESS_KEY);
+    refresh();
+    onSaved?.();
+    // First-time setup: take the user straight to the main loop. Editing an
+    // existing profile: stay put — jumping away the instant "Save changes"
+    // is clicked would be jarring now that both tabs are meant to be
+    // reachable any time, not just on first run.
+    if (!isEditing) {
+      router.push("/agent");
+    }
   }
 
   const isLastStep = stepIndex === STEPS.length - 1;
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-6 py-12">
+    <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-6 py-12">
       <div className="flex flex-col gap-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
           {isEditing ? "Edit your agent" : "Set up your agent"}
@@ -508,6 +560,12 @@ export function OnboardingWizard({
           Step {stepIndex + 1} of {STEPS.length}: {STEPS[stepIndex]}
         </span>
       </div>
+
+      {showRestartNotice && (
+        <p className="rounded-xl border border-fit-stretch/30 bg-fit-stretch/10 px-3 py-2 text-sm text-fit-stretch">
+          Your previous edits weren&apos;t saved — starting fresh.
+        </p>
+      )}
 
       {stepIndex === 0 && (
         <BasicsStep draft={draft.basics} defaults={defaultProfile.basics} onChange={updateBasics} />
@@ -545,7 +603,7 @@ export function OnboardingWizard({
           Back
         </button>
         {isLastStep ? (
-          <button type="button" className={primaryButtonClass} onClick={handleCreateAgent}>
+          <button type="button" className={primaryButtonClass} onClick={handleSave}>
             {isEditing ? "Save changes" : "Create my agent"}
           </button>
         ) : (
@@ -558,6 +616,6 @@ export function OnboardingWizard({
           </button>
         )}
       </div>
-    </main>
+    </div>
   );
 }

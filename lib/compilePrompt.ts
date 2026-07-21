@@ -5,6 +5,7 @@ const MAX_STORY_BANK_ITEMS = 8;
 function renderBasics(basics: Profile["basics"]): string {
   return [
     `Name: ${basics.name}`,
+    `Email: ${basics.email}`,
     `Current title: ${basics.currentTitle} at ${basics.currentCompany}`,
     `Location: ${basics.location}`,
     `Notice period: ${basics.noticePeriodDays} days`,

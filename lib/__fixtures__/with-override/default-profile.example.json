@@ -1,6 +1,7 @@
 {
   "basics": {
     "name": "Fixture Example Person",
+    "email": "fixture.example@example.com",
     "currentTitle": "Test Engineer",
     "currentCompany": "Fixture Co",
     "location": "Test City",

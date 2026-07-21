@@ -41,6 +41,14 @@ describe("ProfileSchema", () => {
     };
     expect(() => ProfileSchema.parse(invalid)).toThrow();
   });
+
+  it("rejects a malformed email", () => {
+    const invalid = {
+      ...exampleProfileRaw,
+      basics: { ...exampleProfileRaw.basics, email: "not-an-email" },
+    };
+    expect(() => ProfileSchema.parse(invalid)).toThrow();
+  });
 });
 
 describe("FitAnalysisSchema", () => {

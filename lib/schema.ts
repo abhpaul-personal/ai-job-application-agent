@@ -3,6 +3,7 @@ import { z } from "zod";
 export const BasicsSchema = z
   .object({
     name: z.string(),
+    email: z.string().email(),
     currentTitle: z.string(),
     currentCompany: z.string(),
     location: z.string(),

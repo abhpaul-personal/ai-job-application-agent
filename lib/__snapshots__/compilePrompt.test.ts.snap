@@ -3,6 +3,7 @@
 exports[`compileSystemPrompt > matches the snapshot for the example profile 1`] = `
 "## Candidate ground truth
 Name: Priya Nair
+Email: priya.nair@example.com
 Current title: Senior Product Manager at DemoCommerce Labs
 Location: Bengaluru, India
 Notice period: 30 days
