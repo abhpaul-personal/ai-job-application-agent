@@ -124,7 +124,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
 const KIT_TABS = ["cv", "cover-letter", "recruiter-dm"] as const;
 type KitTab = (typeof KIT_TABS)[number];
 const KIT_TAB_LABELS: Record<KitTab, string> = {
-  cv: "CV",
+  cv: "CV Content",
   "cover-letter": "Cover letter",
   "recruiter-dm": "Recruiter DM",
 };
