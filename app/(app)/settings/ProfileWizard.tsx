@@ -484,6 +484,9 @@ function ReviewStep({ profile }: { profile: Profile }) {
   const prompt = useMemo(() => compileSystemPrompt(profile), [profile]);
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-sm text-accent-warm">
+        Your agent only draws from what you tell it here — nothing invented.
+      </p>
       <div className="flex flex-col gap-1.5">
         <span className={labelClass}>Profile JSON</span>
         <pre className="max-h-64 overflow-auto rounded-2xl border border-foreground/10 p-3 text-xs">

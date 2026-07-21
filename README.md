@@ -4,6 +4,8 @@
 
 Built by a Product Manager using Claude Code, as an exploration of agent design patterns: prompt-as-spec, structured outputs, human-in-the-loop checkpoints, and profile-to-prompt compilation.
 
+This is built for applying with more care per application, not for applying to more roles faster. It won't generate an application kit without a human first reviewing the fit analysis, and it only claims facts present in your own profile — never invented metrics, titles, or experience.
+
 ## The idea
 
 Most "AI job tools" are generic. This one isn't — because the agent is *generated from you*:

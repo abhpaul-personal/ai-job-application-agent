@@ -37,6 +37,9 @@ function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
       <div className="flex flex-col gap-1">
         <span className="text-xl font-semibold">{analysis.verdict}</span>
         <span className="text-sm text-text-secondary">Fit score: {analysis.fitScore} / 100</span>
+        <span className="text-sm text-accent-warm">
+          This is a starting signal, not a verdict — you decide what to do with it.
+        </span>
       </div>
 
       {analysis.matchedStrengths.length > 0 && (
@@ -154,8 +157,8 @@ function ApplicationKitView({
   return (
     <div className={`flex flex-col gap-4 p-5 ${cardClass}`}>
       <p className="text-sm text-accent-warm">Kit ready — that&apos;s one more in.</p>
-      <p className="rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-2 text-xs text-text-secondary">
-        AI-drafted — verify every claim before sending.
+      <p className="rounded-xl border border-fit-stretch/30 bg-fit-stretch/10 px-3 py-2 text-sm text-fit-stretch">
+        AI-drafted from your profile. Read it once, make it yours, then send.
       </p>
 
       <div className="flex gap-2">
