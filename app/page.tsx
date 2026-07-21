@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/uiClasses";
 
 export default function Home() {
@@ -7,9 +8,12 @@ export default function Home() {
     <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
       <div className="flex flex-col items-center gap-3">
         <Logo className="h-12 w-12" />
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Job Kit Agent
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+            Job Kit Agent
+          </h1>
+          <ThemeToggle />
+        </div>
         <p className="text-base font-medium text-foreground">
           Your job search, compiled into an agent.
         </p>

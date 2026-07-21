@@ -35,6 +35,8 @@ npm run dev
 
 Your profile is stored locally in your browser (exportable/importable as JSON from Settings). No accounts, no database, no profile data leaves your machine except inside API calls to Anthropic.
 
+A dark mode toggle (remembered per-browser) and a `mailto:` feedback link sit in the header/footer on every page.
+
 ## Deploying
 
 1. Import this repo into [Vercel](https://vercel.com/new).

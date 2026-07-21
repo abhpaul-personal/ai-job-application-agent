@@ -144,7 +144,7 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className="w-full sm:w-auto rounded-full bg-fit-low px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
+                    className="w-full sm:w-auto rounded-full bg-fit-low px-6 py-3 text-sm font-medium text-on-accent transition-opacity hover:opacity-90"
                     onClick={handleClear}
                   >
                     Confirm clear
