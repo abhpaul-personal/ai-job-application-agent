@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ChatAssistant } from "@/components/ChatAssistant";
 import { Spinner } from "@/components/Spinner";
 import {
   cardClass,
@@ -358,94 +359,97 @@ export default function AgentPage() {
     : false;
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Run a job fit analysis</h1>
+    <>
+      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
+        <h1 className="text-2xl font-semibold tracking-tight">Run a job fit analysis</h1>
 
-      {weeklyCount > 0 && (
-        <p className="-mt-6 text-xs text-text-secondary">
-          {weeklyCount} {weeklyCount === 1 ? "role" : "roles"} analyzed this week
-        </p>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {roleTypes.length > 1 ? (
-          <label className="flex flex-col gap-1.5">
-            <span className={labelClass}>Track</span>
-            <select
-              className={inputClass}
-              value={selectedTrack}
-              onChange={(e) => setSelectedTrack(e.target.value)}
-            >
-              {roleTypes.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <p className="text-sm text-text-secondary">Track: {roleTypes[0]}</p>
+        {weeklyCount > 0 && (
+          <p className="-mt-6 text-xs text-text-secondary">
+            {weeklyCount} {weeklyCount === 1 ? "role" : "roles"} analyzed this week
+          </p>
         )}
 
-        <label className="flex flex-col gap-1.5">
-          <span className={labelClass}>Job description</span>
-          <textarea
-            className={`${textareaClass} min-h-48`}
-            value={jd}
-            onChange={(e) => setJd(e.target.value)}
-            placeholder="Paste it in — we'll look at it together."
-          />
-        </label>
+        <div className="flex flex-col gap-4">
+          {roleTypes.length > 1 ? (
+            <label className="flex flex-col gap-1.5">
+              <span className={labelClass}>Track</span>
+              <select
+                className={inputClass}
+                value={selectedTrack}
+                onChange={(e) => setSelectedTrack(e.target.value)}
+              >
+                {roleTypes.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="text-sm text-text-secondary">Track: {roleTypes[0]}</p>
+          )}
+
+          <label className="flex flex-col gap-1.5">
+            <span className={labelClass}>Job description</span>
+            <textarea
+              className={`${textareaClass} min-h-48`}
+              value={jd}
+              onChange={(e) => setJd(e.target.value)}
+              placeholder="Paste it in — we'll look at it together."
+            />
+          </label>
+
+          <button
+            type="button"
+            className={primaryButtonClass}
+            disabled={jd.trim() === "" || status === "loading"}
+            onClick={handleRunAnalysis}
+          >
+            {status === "loading" ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <Spinner /> Running job fit analysis…
+              </span>
+            ) : (
+              "Run job fit analysis"
+            )}
+          </button>
+
+          {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
+        </div>
+
+        {analysis && <FitAnalysisView analysis={analysis} />}
+
+        {hasWarnings && (
+          <p className="text-sm text-fit-low">
+            This one has real gaps — worth a second look before you generate a kit.
+          </p>
+        )}
 
         <button
           type="button"
           className={primaryButtonClass}
-          disabled={jd.trim() === "" || status === "loading"}
-          onClick={handleRunAnalysis}
+          disabled={!analysis || kitStatus === "loading"}
+          onClick={handleGenerateKit}
         >
-          {status === "loading" ? (
+          {kitStatus === "loading" ? (
             <span className="inline-flex items-center justify-center gap-2">
-              <Spinner /> Running job fit analysis…
+              <Spinner /> Generating application kit…
             </span>
           ) : (
-            "Run job fit analysis"
+            "Generate application kit"
           )}
         </button>
+        {kitStatus === "error" && <p className="text-sm text-fit-low">{kitErrorMessage}</p>}
 
-        {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
-      </div>
-
-      {analysis && <FitAnalysisView analysis={analysis} />}
-
-      {hasWarnings && (
-        <p className="text-sm text-fit-low">
-          This one has real gaps — worth a second look before you generate a kit.
-        </p>
-      )}
-
-      <button
-        type="button"
-        className={primaryButtonClass}
-        disabled={!analysis || kitStatus === "loading"}
-        onClick={handleGenerateKit}
-      >
-        {kitStatus === "loading" ? (
-          <span className="inline-flex items-center justify-center gap-2">
-            <Spinner /> Generating application kit…
-          </span>
-        ) : (
-          "Generate application kit"
+        {kit && (
+          <ApplicationKitView
+            kit={kit}
+            recruiterDmDraft={recruiterDmDraft}
+            onRecruiterDmChange={setRecruiterDmDraft}
+          />
         )}
-      </button>
-      {kitStatus === "error" && <p className="text-sm text-fit-low">{kitErrorMessage}</p>}
-
-      {kit && (
-        <ApplicationKitView
-          kit={kit}
-          recruiterDmDraft={recruiterDmDraft}
-          onRecruiterDmChange={setRecruiterDmDraft}
-        />
-      )}
-    </main>
+      </main>
+      <ChatAssistant profile={profile} analysis={analysis} />
+    </>
   );
 }
