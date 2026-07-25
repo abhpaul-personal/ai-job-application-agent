@@ -1,6 +1,6 @@
-# Phase 2 Roadmap — Chat Assistant (parked until next week)
+# Phase 2 Roadmap — Chat Assistant (shipped)
 
-Status: NOT STARTED. Captured now, intended pickup: following week, after current feature freeze holds through launch settling. See docs/BUILD_PLAN.md and other roadmap docs (Phase 3: Pipeline Intelligence, Phase 4: Accounts) for how this fits alongside the rest of the parked work.
+Status: COMPLETE. Shipped 2026-07-26 — backend stage (`lib/agentPrompts.ts`, `lib/agentStage.ts`, `app/api/agent/route.ts`) and bubble/drawer UI (`components/ChatAssistant.tsx`) both built and verified against the hard boundaries in section 3 below. See `docs/ARCHITECTURE.md` for the as-built system description; see other roadmap docs (Phase 3: Pipeline Intelligence, Phase 4: Accounts) for what's still parked.
 
 ## 1. Problem / idea
 
