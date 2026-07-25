@@ -37,3 +37,14 @@ Pipeline data (recruiter names, comp quotes, negotiation details) is the most se
 ## 5. Sequencing
 
 See docs/PHASE3-ROADMAP.md section 6 for how this phase sequences against Phase 3 (Accounts). Recommended: M7 (tracker) before Phase 3's auth work, so persistence for both profile and tracker data is built once.
+
+## 6. Competitive scan notes (added 2026-07-23)
+
+Reviewed a peer project (JSpotter, github.com/MrLion/JSpotter — an early-stage personal script pipeline, not a polished product) for ideas. Findings relevant to this phase:
+
+**Worth considering when M7-M10 are built:**
+- A simple High/Medium/Low priority bucket, derived from the fit score, as a scannable addition to insight cards (M8) — simpler for a user to parse at a glance than a raw number.
+- "Interview probability" as a scoring dimension is an interesting idea in principle, but should only ever be attempted once real tracker outcome data exists (M9/M10) to calibrate against — never as a guessed/assumed figure from day one. Consistent with this doc's existing rule against overconfident statistical claims on small samples.
+
+**Deliberately rejected, keep as a hard line:**
+- No automated LinkedIn/job-board scraping, ever. Beyond the technical fragility, this is a real Terms of Service and legal risk (see hiQ v. LinkedIn and subsequent enforcement patterns) — not worth the exposure for a project publicly tied to the maintainer's real identity during an active job search. M9's paste-based-only approach to LinkedIn ingestion (already specified above) stays as-is; this scan reinforces rather than changes that decision.
