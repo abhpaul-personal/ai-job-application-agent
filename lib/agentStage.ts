@@ -43,13 +43,17 @@ export async function runAgentStage<T>({
   system,
   userMessage,
   schema,
+  history = [],
 }: {
   callModel: CallModel;
   system: string;
   userMessage: string;
   schema: z.ZodType<T>;
+  // Prior turns of a multi-turn conversation (chat stage only). Every other
+  // stage is single-shot and omits this, so it defaults to empty.
+  history?: ModelMessage[];
 }): Promise<StageResult<T>> {
-  const messages: ModelMessage[] = [{ role: "user", content: userMessage }];
+  const messages: ModelMessage[] = [...history, { role: "user", content: userMessage }];
 
   const firstResponse = await callModel(system, messages);
   const firstResult = tryParse(firstResponse, schema);

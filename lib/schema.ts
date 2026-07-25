@@ -116,10 +116,32 @@ export const ExtractRequestSchema = z.object({
   rawInput: z.string(),
 });
 
+export const ChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+});
+
+export type ChatMessage = z.infer<typeof ChatMessageSchema>;
+
+export const ChatRequestSchema = z.object({
+  stage: z.literal("chat"),
+  profile: ProfileSchema,
+  analysis: FitAnalysisSchema.optional(),
+  message: z.string(),
+  history: ChatMessageSchema.array().optional(),
+});
+
+export const ChatResponseSchema = z.object({
+  message: z.string(),
+});
+
+export type ChatResponse = z.infer<typeof ChatResponseSchema>;
+
 export const AgentRequestSchema = z.discriminatedUnion("stage", [
   AnalysisRequestSchema,
   KitRequestSchema,
   ExtractRequestSchema,
+  ChatRequestSchema,
 ]);
 
 export type AgentRequest = z.infer<typeof AgentRequestSchema>;

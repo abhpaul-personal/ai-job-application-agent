@@ -86,4 +86,41 @@ describe("runAgentStage", () => {
     expect(secondCallMessages[2].role).toBe("user");
     expect(secondCallMessages[2].content).toContain("did not match the required format");
   });
+
+  it("prepends history before the new user message (chat stage)", async () => {
+    const callModel: CallModel = vi.fn(async () => JSON.stringify({ value: 2 }));
+    const history = [
+      { role: "user" as const, content: "hi" },
+      { role: "assistant" as const, content: "hello" },
+    ];
+    await runAgentStage({
+      callModel,
+      system: "sys",
+      userMessage: "go",
+      schema: TestSchema,
+      history,
+    });
+    const callMessages = (callModel as ReturnType<typeof vi.fn>).mock.calls[0][1];
+    expect(callMessages).toEqual([...history, { role: "user", content: "go" }]);
+  });
+
+  it("still retries once with a non-empty history if the first response is invalid", async () => {
+    const callModel: CallModel = vi
+      .fn()
+      .mockResolvedValueOnce("not json")
+      .mockResolvedValueOnce(JSON.stringify({ value: 4 }));
+    const history = [{ role: "user" as const, content: "hi" }];
+    const result = await runAgentStage({
+      callModel,
+      system: "sys",
+      userMessage: "go",
+      schema: TestSchema,
+      history,
+    });
+    expect(result).toEqual({ success: true, data: { value: 4 } });
+    const secondCallMessages = (callModel as ReturnType<typeof vi.fn>).mock.calls[1][1];
+    expect(secondCallMessages[0]).toEqual({ role: "user", content: "hi" });
+    expect(secondCallMessages[1]).toEqual({ role: "user", content: "go" });
+    expect(secondCallMessages[2]).toEqual({ role: "assistant", content: "not json" });
+  });
 });

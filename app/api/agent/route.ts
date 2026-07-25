@@ -2,6 +2,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import {
   buildAnalysisUserMessage,
+  buildChatSystemPrompt,
+  buildChatUserMessage,
   buildExtractUserMessage,
   buildKitUserMessage,
   EXTRACT_SYSTEM_PROMPT,
@@ -13,6 +15,7 @@ import { createRateLimiter } from "@/lib/rateLimit";
 import {
   AgentRequestSchema,
   ApplicationKitSchema,
+  ChatResponseSchema,
   FitAnalysisSchema,
   StoryBankSchema,
   type AgentRequest,
@@ -58,6 +61,14 @@ function runStage(input: AgentRequest, callModel: CallModel) {
         system: EXTRACT_SYSTEM_PROMPT,
         userMessage: buildExtractUserMessage(input.rawInput),
         schema: StoryBankSchema,
+      });
+    case "chat":
+      return runAgentStage({
+        callModel,
+        system: buildChatSystemPrompt(input.profile),
+        userMessage: buildChatUserMessage(input.message, input.analysis),
+        schema: ChatResponseSchema,
+        history: (input.history ?? []).map((h) => ({ role: h.role, content: h.content })),
       });
   }
 }

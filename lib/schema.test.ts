@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  AgentRequestSchema,
   ApplicationKitSchema,
+  ChatRequestSchema,
   FitAnalysisSchema,
   ProfileSchema,
 } from "./schema";
@@ -114,5 +116,61 @@ describe("ApplicationKitSchema", () => {
     expect(() =>
       ApplicationKitSchema.parse({ ...validKit, recruiterDm: "x".repeat(301) }),
     ).toThrow();
+  });
+});
+
+describe("ChatRequestSchema", () => {
+  it("accepts a minimal chat request (no analysis, no history)", () => {
+    expect(() =>
+      ChatRequestSchema.parse({
+        stage: "chat",
+        profile: exampleProfileRaw,
+        message: "why did this score low",
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts a chat request with analysis and history", () => {
+    expect(() =>
+      ChatRequestSchema.parse({
+        stage: "chat",
+        profile: exampleProfileRaw,
+        analysis: {
+          fitScore: 40,
+          verdict: "Worth a second look",
+          matchedStrengths: [],
+          gaps: ["No direct fintech experience"],
+          salaryCheck: { meetsFloor: false, note: "Below floor" },
+          scamFlags: [],
+        },
+        message: "why did this score low",
+        history: [
+          { role: "user", content: "hi" },
+          { role: "assistant", content: "hello" },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects an unrecognised history role", () => {
+    expect(() =>
+      ChatRequestSchema.parse({
+        stage: "chat",
+        profile: exampleProfileRaw,
+        message: "hi",
+        history: [{ role: "system", content: "hi" }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe("AgentRequestSchema", () => {
+  it("discriminates a chat-stage request alongside the other three stages", () => {
+    const result = AgentRequestSchema.safeParse({
+      stage: "chat",
+      profile: exampleProfileRaw,
+      message: "what does my agent know about me",
+    });
+    expect(result.success).toBe(true);
   });
 });
