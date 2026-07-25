@@ -45,7 +45,7 @@ Then manually: deploy on Vercel (import the GitHub repo, set ANTHROPIC_API_KEY),
 
 ## Beyond M6 (planned, parked)
 
-Three roadmaps exist for after the core MVP: `docs/PHASE2-ROADMAP.md` (Pipeline Intelligence — application tracker, insight cards), `docs/PHASE3-ROADMAP.md` (Accounts & Persisted Profiles — Google sign-in, database persistence), and `docs/PHASE4-ROADMAP.md` (Chat Assistant — scoped, read-only, advisory chat alongside the existing flow). All three are status NOT STARTED — do not begin any until M6 has shipped and the app is deployed and stable.
+Three roadmaps exist for after the core MVP: `docs/PHASE2-ROADMAP.md` (Chat Assistant — scoped, read-only, advisory chat alongside the existing flow), `docs/PHASE3-ROADMAP.md` (Pipeline Intelligence — application tracker, insight cards), and `docs/PHASE4-ROADMAP.md` (Accounts & Persisted Profiles — Google sign-in, database persistence). All three are status NOT STARTED — do not begin any until M6 has shipped and the app is deployed and stable.
 
 ---
 

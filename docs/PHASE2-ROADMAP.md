@@ -1,50 +1,45 @@
-# Phase 2 Roadmap — Pipeline Intelligence (parked)
+# Phase 2 Roadmap — Chat Assistant (parked until next week)
 
-Status: NOT STARTED. Do not begin until core M1-M6 MVP is stable and shipped. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones.
+Status: NOT STARTED. Captured now, intended pickup: following week, after current feature freeze holds through launch settling. See docs/BUILD_PLAN.md and other roadmap docs (Phase 3: Pipeline Intelligence, Phase 4: Accounts) for how this fits alongside the rest of the parked work.
 
-## 1. Problem
+## 1. Problem / idea
 
-A serious job search across 40+ concurrent applications currently requires manual cross-referencing across job boards, recruiter emails/LinkedIn messages, an interview calendar, and an ad-hoc tracker. There's no unified, structured view of the pipeline.
+The app is currently a structured, linear flow (form -> button -> gated result). A chat interface could make the product feel more genuinely agentic and let users ask questions naturally — but a general "agent does everything via chat" redesign would be a different product, not a feature, and would weaken the architectural human-in-the-loop guardrails the whole project is built around (see docs/ARCHITECTURE.md section 4, docs/PITCH.md "line this deliberately does not cross").
 
-## 2. Scope
+Resolution: build a **scoped, read-only, advisory chat assistant** — not a replacement for the existing flow, an addition alongside it.
 
-### M7 — Application tracker (prerequisite for everything else in this phase)
-- Structured record per application: role, company, track, comp band, source, key dates, status, next action.
-- Add-from-pasted-text flow, since most sources (recruiter emails, LinkedIn posts) have no API.
-- localStorage-based, same privacy pattern as profile data — never leaves the browser, never enters version control or the public demo.
+## 2. Scope — what it does
 
-### M8 — Source-tagged insight cards
-- Impact-framed insights over tracker data, e.g. "3 of 5 active processes are TPM-track and clustering in the same 2-week window."
-- Every insight tagged with its origin record for trust/verification at a glance.
+- Explains an already-generated fit analysis in plain language ("why did this score X", "what's the biggest gap").
+- Explains the user's own compiled profile/rules ("what does my agent know about me", "why didn't it mention X").
+- Offers non-authoritative discussion/reasoning ("should I apply to this one" -> talked through, never decided or acted on by the assistant).
+- Points to the right part of the UI for actions the user wants to take (e.g. "go to Settings to update your salary floor").
 
-### M9 — Cross-source ingestion
-- Email/calendar via connectors where genuinely feasible.
-- LinkedIn has no messaging API — ingestion from LinkedIn stays paste-based by design, not a gap to "fix" later.
+## 3. Explicit hard boundaries — what it must never do
 
-### M10 — Pipeline pattern observations
-- Aggregate observations across applications (e.g. which sources respond fastest).
-- Worded strictly as observations, never as statistical claims or rates — sample sizes here are too small (tens, not hundreds) to support confidence language.
+- Never triggers fit analysis or kit generation itself. Those stay exactly where they are, behind their existing gated buttons.
+- Never writes to or modifies the profile.
+- Never claims to have taken an action on the user's behalf. If asked to "just apply for me" or similar, it explains what it can discuss versus what still requires the normal flow — redirects honestly, doesn't silently refuse or pretend to comply.
+- Only ever reasons over: the user's own profile (already compiled), and the current fit analysis if one has been run in the session. No access to and no ability to trigger anything beyond that.
 
-## 3. Non-goals
+## 4. Technical approach (draft, refine before building)
 
-- No predictive scoring ("this JD will get a response") — not enough data to support it honestly.
-- No automated LinkedIn scraping or messaging.
+- New lightweight stage on the existing /api/agent route (or a small dedicated route) — reuses compileSystemPrompt() and the existing profile/analysis data already in scope, no new data model needed.
+- System prompt for this stage explicitly instructs: discuss and explain only; never claim to perform kit generation, analysis, or profile edits; if asked to do so, redirect to the relevant UI action.
+- No new persistence — chat history can be session-only (not saved), consistent with the app's minimal-data-retention posture, unless a clear reason emerges to save it.
+- Reuse the existing Zod-validated JSON contract pattern where practical (e.g. a simple {message: string} response shape) rather than introducing an unvalidated free-text channel.
 
-## 4. Privacy
+## 5. Why this design, not a general agentic redesign
 
-Pipeline data (recruiter names, comp quotes, negotiation details) is the most sensitive data in the system. It follows the same local-only pattern as the personal profile: never in the public repo, never in the deployed demo, which runs on fictional data only.
+A general "agent does everything via chat" version would remove the current architecture's strongest, most defensible property: that kit generation is *structurally* impossible without a human reviewing the analysis first. A read-only, non-authoritative assistant preserves that property completely while still adding a genuinely more conversational, agentic-feeling surface. This is also the stronger interview story: extending the product while actively defending its own design principles, rather than trading them away for a flashier interface.
 
-## 5. Sequencing
+## 6. Non-goals
 
-See docs/PHASE3-ROADMAP.md section 6 for how this phase sequences against Phase 3 (Accounts). Recommended: M7 (tracker) before Phase 3's auth work, so persistence for both profile and tracker data is built once.
+- No voice/multi-modal input.
+- No persistent chat history / conversation memory across sessions in v1.
+- No ability for the assistant to call external tools, browse, or take any action outside reasoning over already-available profile/analysis data.
 
-## 6. Competitive scan notes (added 2026-07-23)
+## 7. Before starting
 
-Reviewed a peer project (JSpotter, github.com/MrLion/JSpotter — an early-stage personal script pipeline, not a polished product) for ideas. Findings relevant to this phase:
-
-**Worth considering when M7-M10 are built:**
-- A simple High/Medium/Low priority bucket, derived from the fit score, as a scannable addition to insight cards (M8) — simpler for a user to parse at a glance than a raw number.
-- "Interview probability" as a scoring dimension is an interesting idea in principle, but should only ever be attempted once real tracker outcome data exists (M9/M10) to calibrate against — never as a guessed/assumed figure from day one. Consistent with this doc's existing rule against overconfident statistical claims on small samples.
-
-**Deliberately rejected, keep as a hard line:**
-- No automated LinkedIn/job-board scraping, ever. Beyond the technical fragility, this is a real Terms of Service and legal risk (see hiQ v. LinkedIn and subsequent enforcement patterns) — not worth the exposure for a project publicly tied to the maintainer's real identity during an active job search. M9's paste-based-only approach to LinkedIn ingestion (already specified above) stays as-is; this scan reinforces rather than changes that decision.
+- Reconfirm feature freeze has genuinely lifted (i.e. launch traffic has settled, no urgent bugs pending) before beginning build.
+- Reread this file's Section 3 (hard boundaries) at the start of the build session, and again before considering the milestone complete — this is the part most likely to erode under normal feature-building pressure ("just let it also...").

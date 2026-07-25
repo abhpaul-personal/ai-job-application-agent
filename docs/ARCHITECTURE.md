@@ -39,7 +39,7 @@ flowchart TB
 |---|---|
 | Onboarding / Agent Settings | 5-step wizard: basics (fill in manually, or import an existing profile JSON to pre-fill), targets, experience (paste CV or guided prompts), rules, review & compile. Same UI serves first-time setup and later edits — dynamically labeled based on whether a profile already exists. |
 | `/agent` page | JD input, track selector, renders fit analysis, gates and renders application kit generation. |
-| localStorage | Sole persistence layer in the current architecture. Key: `aka.profile`. Nothing is sent to any server except inside API calls to Anthropic — no accounts, no database (see Phase 3 roadmap for the planned exception). |
+| localStorage | Sole persistence layer in the current architecture. Key: `aka.profile`. Nothing is sent to any server except inside API calls to Anthropic — no accounts, no database (see Phase 4 roadmap for the planned exception). |
 
 ### Server
 
@@ -73,12 +73,12 @@ flowchart TB
 - **Prompt compiler is a pure, tested function.** Same input always produces the same system prompt — this makes the agent's behavior auditable and testable, not a black box. Snapshot-tested in `lib/compilePrompt.test.ts`.
 - **JSON-only output contracts, not free text.** Every model response must validate against a Zod schema before it touches the UI. This is what prevents free-form hallucinated prose from silently reaching the user.
 - **Human-in-the-loop is architectural, not just a UI suggestion.** Kit generation is state-gated behind a rendered analysis — this is enforced in the client state logic, not just a styling choice.
-- **No database in the current architecture.** Deliberate, not a limitation we forgot to fix — keeps the privacy story simple (nothing leaves the browser except inside model calls) and avoids the security/compliance surface a real user database would introduce. See `docs/PHASE3-ROADMAP.md` for the planned, deliberate expansion into accounts + persistence.
+- **No database in the current architecture.** Deliberate, not a limitation we forgot to fix — keeps the privacy story simple (nothing leaves the browser except inside model calls) and avoids the security/compliance surface a real user database would introduce. See `docs/PHASE4-ROADMAP.md` for the planned, deliberate expansion into accounts + persistence.
 - **One shared API route for all three stages**, rather than three separate routes, keeps the rate-limiting, key-handling, and validation logic in one place rather than triplicated.
 
 ## 5. Related docs
 
 - `docs/PRD.md` — full product requirements.
 - `docs/BUILD_PLAN.md` — milestone build history and prompts.
-- `docs/PHASE2-ROADMAP.md`, `docs/PHASE3-ROADMAP.md` — parked future work (pipeline intelligence; accounts & persistence).
+- `docs/PHASE2-ROADMAP.md`, `docs/PHASE3-ROADMAP.md`, `docs/PHASE4-ROADMAP.md` — parked future work (chat assistant; pipeline intelligence; accounts & persistence).
 - `docs/PITCH.md` — non-technical pitch version of this same system.

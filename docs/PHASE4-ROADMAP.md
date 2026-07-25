@@ -1,45 +1,48 @@
-# Phase 4 Roadmap — Chat Assistant (parked until next week)
+# Phase 4 Roadmap — Accounts & Persisted Profiles (parked)
 
-Status: NOT STARTED. Captured now, intended pickup: following week, after current feature freeze holds through launch settling. See docs/BUILD_PLAN.md and other roadmap docs for how this fits alongside Phase 2/3.
+Status: NOT STARTED. Do not begin until M6 has shipped and deployed. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones.
 
-## 1. Problem / idea
+## 1. Problem
 
-The app is currently a structured, linear flow (form -> button -> gated result). A chat interface could make the product feel more genuinely agentic and let users ask questions naturally — but a general "agent does everything via chat" redesign would be a different product, not a feature, and would weaken the architectural human-in-the-loop guardrails the whole project is built around (see docs/ARCHITECTURE.md section 4, docs/PITCH.md "line this deliberately does not cross").
+Today the app is single-user-per-browser: profile lives in localStorage, nothing survives a new device or a cleared cache. Two real user needs are emerging:
 
-Resolution: build a **scoped, read-only, advisory chat assistant** — not a replacement for the existing flow, an addition alongside it.
+- **Anonymous / try-it users** — paste a CV, run the flow once, evaluate the product. This is the marketing CTA: no friction, no signup, works today.
+- **Returning users** — want their profile to persist across sessions and devices, without redoing onboarding each time.
 
-## 2. Scope — what it does
+## 2. Design principle
 
-- Explains an already-generated fit analysis in plain language ("why did this score X", "what's the biggest gap").
-- Explains the user's own compiled profile/rules ("what does my agent know about me", "why didn't it mention X").
-- Offers non-authoritative discussion/reasoning ("should I apply to this one" -> talked through, never decided or acted on by the assistant).
-- Points to the right part of the UI for actions the user wants to take (e.g. "go to Settings to update your salary floor").
+One codebase, one flow, one compiler. Authentication changes *where the profile is stored*, not what the app does. Do not fork the anonymous and authenticated experiences into separate code paths — that doubles maintenance for no product benefit. Concretely: the profile object and compileSystemPrompt() stay exactly as built in M2; only the read/write layer changes (localStorage vs. database, keyed by user id instead of a fixed browser key).
 
-## 3. Explicit hard boundaries — what it must never do
+## 3. Scope
 
-- Never triggers fit analysis or kit generation itself. Those stay exactly where they are, behind their existing gated buttons.
-- Never writes to or modifies the profile.
-- Never claims to have taken an action on the user's behalf. If asked to "just apply for me" or similar, it explains what it can discuss versus what still requires the normal flow — redirects honestly, doesn't silently refuse or pretend to comply.
-- Only ever reasons over: the user's own profile (already compiled), and the current fit analysis if one has been run in the session. No access to and no ability to trigger anything beyond that.
+### M11 — Auth
+- Add NextAuth.js with Google as the sign-in provider (matches "auth via Gmail").
+- Anonymous use remains fully functional and default — sign-in is opt-in, offered as "Save your profile — sign in with Google," never required to use the core flow.
+- Session handling only; no new UI beyond a sign-in button and a signed-in state indicator.
 
-## 4. Technical approach (draft, refine before building)
+### M12 — Persistence layer
+- Add a database — Postgres via Vercel's managed integration is the lowest-friction path from the current Vercel deployment.
+- One table: profiles, keyed by user id (from the auth session), storing the same JSON shape already defined in lib/schema.ts. No schema redesign — the Zod schema built in M2 is reused as-is.
+- On sign-in: if a localStorage profile exists and no DB profile exists yet, offer "Save this profile to your account" as a one-time migration prompt. Never silently overwrite.
+- Anonymous users continue to use localStorage exactly as today; signed-in users read/write the database instead. Same components, same compiler, different storage call underneath.
 
-- New lightweight stage on the existing /api/agent route (or a small dedicated route) — reuses compileSystemPrompt() and the existing profile/analysis data already in scope, no new data model needed.
-- System prompt for this stage explicitly instructs: discuss and explain only; never claim to perform kit generation, analysis, or profile edits; if asked to do so, redirect to the relevant UI action.
-- No new persistence — chat history can be session-only (not saved), consistent with the app's minimal-data-retention posture, unless a clear reason emerges to save it.
-- Reuse the existing Zod-validated JSON contract pattern where practical (e.g. a simple {message: string} response shape) rather than introducing an unvalidated free-text channel.
+### M13 — Application history (depends on Phase 3's tracker, M7+)
+- Only relevant once Phase 3's application tracker exists. For signed-in users, tracker records persist to the database instead of localStorage, using the same pattern as M12.
+- Anonymous users keep a session-only tracker (lost on tab close) — acceptable, since this is a "try it" experience, not a system of record.
 
-## 5. Why this design, not a general agentic redesign
+## 4. Explicit non-goals for Phase 4
 
-A general "agent does everything via chat" version would remove the current architecture's strongest, most defensible property: that kit generation is *structurally* impossible without a human reviewing the analysis first. A read-only, non-authoritative assistant preserves that property completely while still adding a genuinely more conversational, agentic-feeling surface. This is also the stronger interview story: extending the product while actively defending its own design principles, rather than trading them away for a flashier interface.
+- No password-based auth — Google only, to keep the security surface small for a solo-maintained project.
+- No multi-user org/team features.
+- No admin dashboard or analytics on other users' profiles.
+- No change to the anonymous flow's capabilities — it must remain a complete, un-nerfed demo of the product, since it is the marketing CTA.
 
-## 6. Non-goals
+## 5. Risks
 
-- No voice/multi-modal input.
-- No persistent chat history / conversation memory across sessions in v1.
-- No ability for the assistant to call external tools, browse, or take any action outside reasoning over already-available profile/analysis data.
+- **Security surface increases materially** once real user data sits in a real database — sessions, access control, and data deletion (GDPR-style "delete my data" requests) all become real obligations, not toy concerns. Do not treat this as "just add a login button."
+- **Cost**: a managed Postgres instance has a running cost, unlike the current fully-static/serverless setup. Confirm free-tier limits before committing.
+- **Scope creep**: the temptation after auth exists is to keep adding account features. Re-read the non-goals list before starting each new idea.
 
-## 7. Before starting
+## 6. Sequencing relative to Phase 3
 
-- Reconfirm feature freeze has genuinely lifted (i.e. launch traffic has settled, no urgent bugs pending) before beginning build.
-- Reread this file's Section 3 (hard boundaries) at the start of the build session, and again before considering the milestone complete — this is the part most likely to erode under normal feature-building pressure ("just let it also...").
+Independent tracks — Phase 3 (Pipeline Intelligence) and Phase 4 (Accounts) touch different parts of the app and can be built in either order after M6. Recommended order: Phase 3's M7 tracker first (it's pure localStorage, no new infra, fast portfolio value), then Phase 4 auth, then M12/M13 to persist the tracker for signed-in users — so persistence is built once, for both profile and tracker data, instead of twice.
