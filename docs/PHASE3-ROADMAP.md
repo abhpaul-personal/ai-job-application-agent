@@ -1,6 +1,6 @@
 # Phase 3 Roadmap — Pipeline Intelligence (parked)
 
-Status: NOT STARTED. Do not begin until core M1-M6 MVP is stable and shipped. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones.
+Status: NOT STARTED. Do not begin until core M1-M6 MVP is stable and shipped. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones. Per `docs/POSITIONING.md` Section 5, this phase's scope now also includes natural-language tracker entry via the existing chat assistant (e.g. "add Agoda TPM, applied yesterday"), with confirm-before-write required before anything commits — see POSITIONING.md Section 3 for the boundary this must respect.
 
 ## 1. Problem
 

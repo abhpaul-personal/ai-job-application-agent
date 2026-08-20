@@ -45,6 +45,8 @@ Then manually: deploy on Vercel (import the GitHub repo, set ANTHROPIC_API_KEY),
 
 ## Beyond M6 (planned, parked)
 
+`docs/POSITIONING.md` is the anchor decision document governing all Phase 3+ work — read it before starting or re-scoping any phase below. Where a phase roadmap conflicts with it, POSITIONING.md wins by default.
+
 Three roadmaps exist for after the core MVP: `docs/PHASE2-ROADMAP.md` (Chat Assistant — scoped, read-only, advisory chat alongside the existing flow; shipped 2026-07-26), `docs/PHASE3-ROADMAP.md` (Pipeline Intelligence — application tracker, insight cards; NOT STARTED), and `docs/PHASE4-ROADMAP.md` (Accounts & Persisted Profiles — Google sign-in, database persistence; NOT STARTED). Do not begin either remaining one until M6 has shipped and the app is deployed and stable — already true, but worth restating since it's easy to forget once one phase has shipped.
 
 ---
