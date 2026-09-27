@@ -22,6 +22,7 @@ const trackerRecord: TrackerRecord = {
   lastUpdatedDate: "2026-07-01",
   status: "Applied",
   nextAction: "Follow up",
+  entryOrigin: "Manual",
 };
 
 // A fake tagged-template query function — records what it was called with
@@ -90,6 +91,14 @@ describe("getTrackerRecordsForUser", () => {
   it("returns parsed records for valid rows", async () => {
     const sql = fakeSql([{ record: trackerRecord }]);
     expect(await getTrackerRecordsForUser("user-1", sql)).toEqual([trackerRecord]);
+  });
+
+  it("migrates a pre-entryOrigin row to Manual without losing any other data", async () => {
+    const { entryOrigin, ...preMigrationRecord } = trackerRecord;
+    void entryOrigin;
+    const sql = fakeSql([{ record: preMigrationRecord }]);
+    const [result] = await getTrackerRecordsForUser("user-1", sql);
+    expect(result).toEqual({ ...preMigrationRecord, entryOrigin: "Manual" });
   });
 
   it("queries by the given user id", async () => {

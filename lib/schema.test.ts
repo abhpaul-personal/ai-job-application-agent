@@ -264,6 +264,22 @@ describe("TrackerRecordSchema", () => {
   it("rejects an unrecognised status", () => {
     expect(() => TrackerRecordSchema.parse({ ...validRecord, status: "Ghosted" })).toThrow();
   });
+
+  it("defaults entryOrigin to Manual when absent (the pre-migration case)", () => {
+    const parsed = TrackerRecordSchema.parse(validRecord);
+    expect(parsed.entryOrigin).toBe("Manual");
+  });
+
+  it("accepts an explicit Job Kit Agent entryOrigin", () => {
+    const parsed = TrackerRecordSchema.parse({ ...validRecord, entryOrigin: "Job Kit Agent" });
+    expect(parsed.entryOrigin).toBe("Job Kit Agent");
+  });
+
+  it("rejects an unrecognised entryOrigin", () => {
+    expect(() =>
+      TrackerRecordSchema.parse({ ...validRecord, entryOrigin: "Somewhere Else" }),
+    ).toThrow();
+  });
 });
 
 describe("TrackerDraftSchema", () => {
@@ -280,6 +296,12 @@ describe("TrackerDraftSchema", () => {
   it("rejects an id field (server-assigned, never part of a draft)", () => {
     expect(() =>
       TrackerDraftSchema.strict().parse({ id: "record-1", company: "Agoda" }),
+    ).toThrow();
+  });
+
+  it("rejects an entryOrigin field (app-assigned, never something the model sets)", () => {
+    expect(() =>
+      TrackerDraftSchema.strict().parse({ entryOrigin: "Job Kit Agent", company: "Agoda" }),
     ).toThrow();
   });
 });

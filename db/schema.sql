@@ -20,3 +20,8 @@ create table if not exists tracker_records (
 );
 
 create index if not exists tracker_records_user_id_idx on tracker_records (user_id);
+
+-- No DDL/backfill needed when tracker_records gains a new JSON field (e.g.
+-- entryOrigin) — this column is jsonb, and TrackerRecordSchema's Zod
+-- .default() fills in the new field for any row parsed before it existed.
+-- The "migration" is just reading the row through the current schema.

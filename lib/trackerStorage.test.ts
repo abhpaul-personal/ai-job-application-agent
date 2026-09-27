@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { KeyValueStorage } from "./profileStorage";
-import { deleteTrackerRecord, getTrackerRecords, saveTrackerRecord } from "./trackerStorage";
+import {
+  deleteTrackerRecord,
+  emptyTrackerFields,
+  getTrackerRecords,
+  saveTrackerRecord,
+} from "./trackerStorage";
 import { TRACKER_STORAGE_KEY, type TrackerRecord } from "./schema";
 
 function fakeStorage(): KeyValueStorage {
@@ -28,9 +33,16 @@ function record(overrides: Partial<TrackerRecord> = {}): TrackerRecord {
     lastUpdatedDate: "2026-07-01",
     status: "Applied",
     nextAction: "Follow up",
+    entryOrigin: "Manual",
     ...overrides,
   };
 }
+
+describe("emptyTrackerFields", () => {
+  it("tags a blank record as Manual", () => {
+    expect(emptyTrackerFields().entryOrigin).toBe("Manual");
+  });
+});
 
 describe("getTrackerRecords", () => {
   it("returns an empty array before anything is saved", () => {
@@ -41,6 +53,23 @@ describe("getTrackerRecords", () => {
     const storage = fakeStorage();
     storage.setItem(TRACKER_STORAGE_KEY, "{not json");
     expect(getTrackerRecords(storage)).toEqual([]);
+  });
+
+  it("migrates a pre-entryOrigin record to Manual without losing any other data", () => {
+    const storage = fakeStorage();
+    const { entryOrigin, ...preMigrationRecord } = record();
+    void entryOrigin;
+    storage.setItem(TRACKER_STORAGE_KEY, JSON.stringify([preMigrationRecord]));
+    expect(getTrackerRecords(storage)).toEqual([{ ...preMigrationRecord, entryOrigin: "Manual" }]);
+  });
+
+  it("skips a genuinely malformed record instead of throwing", () => {
+    const storage = fakeStorage();
+    storage.setItem(
+      TRACKER_STORAGE_KEY,
+      JSON.stringify([{ company: "incomplete" }, record()]),
+    );
+    expect(getTrackerRecords(storage)).toEqual([record()]);
   });
 });
 

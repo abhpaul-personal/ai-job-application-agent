@@ -1,9 +1,11 @@
-import { TRACKER_STORAGE_KEY, type TrackerRecord } from "./schema";
+import { TRACKER_STORAGE_KEY, TrackerRecordSchema, type TrackerRecord } from "./schema";
 import type { KeyValueStorage } from "./profileStorage";
 
 // The blank-record shape shared by the add form (TrackerView.tsx) and the
 // chat-draft merge (trackerChatDraft.ts) — one place for the field list so
 // adding/renaming a tracker field only ever needs a schema.ts change here.
+// entryOrigin: "Manual" here is what tags the manual-add form and any
+// brand-new chat/paste-to-prefill record as human-initiated.
 export function emptyTrackerFields(): Omit<TrackerRecord, "id" | "lastUpdatedDate"> {
   return {
     role: "",
@@ -14,18 +16,35 @@ export function emptyTrackerFields(): Omit<TrackerRecord, "id" | "lastUpdatedDat
     appliedDate: "",
     status: "Applied",
     nextAction: "",
+    entryOrigin: "Manual",
   };
 }
 
 function readAll(storage: KeyValueStorage): TrackerRecord[] {
   const raw = storage.getItem(TRACKER_STORAGE_KEY);
   if (!raw) return [];
+  let parsed: unknown;
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as TrackerRecord[]) : [];
+    parsed = JSON.parse(raw);
   } catch {
     return [];
   }
+  if (!Array.isArray(parsed)) return [];
+
+  const records: TrackerRecord[] = [];
+  for (const item of parsed) {
+    // Same discipline as lib/db.ts's getProfileForUser/getTrackerRecordsForUser:
+    // a record predating a schema field (e.g. entryOrigin) still parses —
+    // Zod fills in its default — so old records migrate in place rather
+    // than being dropped. Only a genuinely malformed record is skipped.
+    const result = TrackerRecordSchema.safeParse(item);
+    if (result.success) {
+      records.push(result.data);
+    } else {
+      console.warn("Stored tracker record does not match TrackerRecordSchema; skipping it.");
+    }
+  }
+  return records;
 }
 
 function writeAll(storage: KeyValueStorage, records: TrackerRecord[]): void {

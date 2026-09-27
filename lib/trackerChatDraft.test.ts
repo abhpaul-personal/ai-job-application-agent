@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { describeTrackerDraft, mergeChatTrackerDraft } from "./trackerChatDraft";
-import type { ChatTrackerDraft, TrackerRecord } from "./schema";
+import { buildKitAppliedRecord, describeTrackerDraft, mergeChatTrackerDraft } from "./trackerChatDraft";
+import type { ChatTrackerDraft, TrackerDraft, TrackerRecord } from "./schema";
 
 const existingRecords: TrackerRecord[] = [
   {
@@ -14,6 +14,7 @@ const existingRecords: TrackerRecord[] = [
     lastUpdatedDate: "2026-07-01",
     status: "Applied",
     nextAction: "Follow up",
+    entryOrigin: "Manual",
   },
 ];
 
@@ -58,5 +59,28 @@ describe("describeTrackerDraft", () => {
 
   it("returns an empty list for an empty draft", () => {
     expect(describeTrackerDraft({})).toEqual([]);
+  });
+});
+
+describe("buildKitAppliedRecord", () => {
+  it("uses the extracted role when present", () => {
+    const extracted: TrackerDraft = { company: "Stripe", role: "Senior TPM" };
+    const record = buildKitAppliedRecord(extracted, "Product Manager", "2026-09-27");
+    expect(record.role).toBe("Senior TPM");
+    expect(record.company).toBe("Stripe");
+  });
+
+  it("falls back to the given role when extraction found none", () => {
+    const extracted: TrackerDraft = { company: "Stripe" };
+    const record = buildKitAppliedRecord(extracted, "Product Manager", "2026-09-27");
+    expect(record.role).toBe("Product Manager");
+  });
+
+  it("always forces status Applied, the given date, and Job Kit Agent origin", () => {
+    const extracted: TrackerDraft = { status: "Interview", appliedDate: "2020-01-01" };
+    const record = buildKitAppliedRecord(extracted, "Product Manager", "2026-09-27");
+    expect(record.status).toBe("Applied");
+    expect(record.appliedDate).toBe("2026-09-27");
+    expect(record.entryOrigin).toBe("Job Kit Agent");
   });
 });

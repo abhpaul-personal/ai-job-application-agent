@@ -117,6 +117,7 @@ describe("buildChatUserMessage", () => {
         lastUpdatedDate: "2026-07-01",
         status: "Applied",
         nextAction: "",
+        entryOrigin: "Manual",
       },
     ];
     const message = buildChatUserMessage(

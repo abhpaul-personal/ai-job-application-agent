@@ -1,5 +1,5 @@
 import { emptyTrackerFields } from "./trackerStorage";
-import type { ChatTrackerDraft, TrackerRecord } from "./schema";
+import type { ChatTrackerDraft, TrackerDraft, TrackerRecord } from "./schema";
 
 const FIELD_LABELS: Record<string, string> = {
   role: "Role",
@@ -27,11 +27,38 @@ export function mergeChatTrackerDraft(
   return { record: { ...base, ...fields }, matchedId: matched?.id ?? null };
 }
 
-// Plain-language field-by-field summary for the in-chat confirm card — only
-// lists fields the model actually filled in, same "only show what's
-// present" rule as the paste-to-prefill flow.
-export function describeTrackerDraft(draft: ChatTrackerDraft): string[] {
+const NON_DISPLAY_KEYS = new Set(["matchedRecordId", "entryOrigin", "id", "lastUpdatedDate"]);
+
+// Plain-language field-by-field summary for a confirm card — only lists
+// fields actually present, same "only show what's present" rule as the
+// paste-to-prefill flow. Used by both the in-chat confirm card (prompt 3)
+// and the post-kit-generation confirm card (prompt 4); entryOrigin/id/
+// lastUpdatedDate are excluded since they're app-assigned, not user-facing.
+export function describeTrackerDraft(
+  draft: ChatTrackerDraft | Record<string, unknown>,
+): string[] {
   return Object.entries(draft)
-    .filter(([key, value]) => key !== "matchedRecordId" && value !== undefined && value !== "")
+    .filter(([key, value]) => !NON_DISPLAY_KEYS.has(key) && value !== undefined && value !== "")
     .map(([key, value]) => `${FIELD_LABELS[key] ?? key}: ${value}`);
+}
+
+// The post-kit-generation auto-entry prompt's own draft builder: unlike
+// mergeChatTrackerDraft (patch-or-create against existing records), this is
+// always a brand-new record, and status/appliedDate/entryOrigin are always
+// forced to these specific values regardless of what extraction returned —
+// the record represents "the user just applied," not whatever stage the JD
+// text happens to describe.
+export function buildKitAppliedRecord(
+  extracted: TrackerDraft,
+  fallbackRole: string,
+  today: string,
+): Omit<TrackerRecord, "id" | "lastUpdatedDate"> {
+  return {
+    ...emptyTrackerFields(),
+    ...extracted,
+    role: extracted.role || fallbackRole,
+    status: "Applied",
+    appliedDate: today,
+    entryOrigin: "Job Kit Agent",
+  };
 }

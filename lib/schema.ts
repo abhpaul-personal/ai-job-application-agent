@@ -132,6 +132,12 @@ export const TrackerStatusSchema = z.enum([
   "Withdrawn",
 ]);
 
+// "Manual" covers every human-initiated path — the add form, chat-entry
+// (prompt 3), and paste-to-prefill (prompt 2) all tag records this way,
+// even though they're not typed by hand field-by-field. "Job Kit Agent" is
+// the one automated path: the post-kit-generation auto-entry prompt.
+export const EntryOriginSchema = z.enum(["Manual", "Job Kit Agent"]);
+
 export const TrackerRecordSchema = z.object({
   id: z.string(),
   role: z.string(),
@@ -143,6 +149,11 @@ export const TrackerRecordSchema = z.object({
   lastUpdatedDate: z.string(),
   status: TrackerStatusSchema,
   nextAction: z.string(),
+  // .default() is the entire migration story for this field: any stored
+  // record (Postgres jsonb or localStorage) predating entryOrigin simply
+  // lacks the key, and parsing it here fills in "Manual" automatically —
+  // no DDL, no backfill script needed.
+  entryOrigin: EntryOriginSchema.default("Manual"),
 });
 
 export type TrackerRecord = z.infer<typeof TrackerRecordSchema>;
@@ -152,9 +163,13 @@ export const TRACKER_STORAGE_KEY = "aka.tracker";
 // Paste-to-prefill extraction response: same fields as a record minus the
 // server-assigned id/lastUpdatedDate, all optional since a pasted email or
 // JD snippet rarely mentions every field (e.g. compBand is often absent).
+// entryOrigin is also excluded — the model must never be able to set this
+// itself; only application code assigns it, so a record's origin tag is
+// structurally guaranteed rather than instruction-dependent.
 export const TrackerDraftSchema = TrackerRecordSchema.omit({
   id: true,
   lastUpdatedDate: true,
+  entryOrigin: true,
 }).partial();
 
 export type TrackerDraft = z.infer<typeof TrackerDraftSchema>;

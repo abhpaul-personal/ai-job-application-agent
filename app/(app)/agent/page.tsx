@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useChatAnalysis } from "@/components/ChatAnalysisContext";
+import { KitAppliedPrompt } from "@/components/KitAppliedPrompt";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import { Spinner } from "@/components/Spinner";
 import {
@@ -241,6 +242,11 @@ export default function AgentPage() {
   const [kitErrorMessage, setKitErrorMessage] = useState("");
   const [recruiterDmDraft, setRecruiterDmDraft] = useState("");
   const [weeklyCount, setWeeklyCount] = useState(0);
+  // The JD as it was when the current kit was generated, not the live
+  // textarea — so later edits to jd (before the "did you apply?" prompt is
+  // answered) can't change what that prompt is asking about, and so the key
+  // passed to KitAppliedPrompt below stays stable for a given kit.
+  const [kitJd, setKitJd] = useState("");
 
   useEffect(() => {
     // Purely decorative counter — a brief flash from 0 to the real value on
@@ -335,6 +341,7 @@ export default function AgentPage() {
       }
       const newKit = body.data as ApplicationKit;
       setKit(newKit);
+      setKitJd(jd);
       setRecruiterDmDraft(newKit.recruiterDm);
       setKitStatus("idle");
     } catch {
@@ -454,11 +461,14 @@ export default function AgentPage() {
         {kitStatus === "error" && <p className="text-sm text-fit-low">{kitErrorMessage}</p>}
 
         {kit && (
-          <ApplicationKitView
-            kit={kit}
-            recruiterDmDraft={recruiterDmDraft}
-            onRecruiterDmChange={setRecruiterDmDraft}
-          />
+          <>
+            <ApplicationKitView
+              kit={kit}
+              recruiterDmDraft={recruiterDmDraft}
+              onRecruiterDmChange={setRecruiterDmDraft}
+            />
+            <KitAppliedPrompt key={kitJd} jd={kitJd} fallbackRole={selectedTrack} />
+          </>
         )}
     </main>
   );
