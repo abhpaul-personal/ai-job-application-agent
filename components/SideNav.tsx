@@ -59,7 +59,7 @@ export function SideNav() {
         href="/tracker"
         className={`${NAV_LINK_BASE} ${tab3Active ? NAV_LINK_ACTIVE : NAV_LINK_INACTIVE}`}
       >
-        Tracker
+        Application Tracker
       </Link>
       {/* Fixed (not sm:mt-auto) so it stays pinned to the viewport corner
           while the page scrolls, instead of sitting at the bottom of
