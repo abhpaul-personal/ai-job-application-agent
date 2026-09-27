@@ -32,6 +32,13 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
       if (cancelled) return;
       setProfile(loaded);
       setUpdatedAt(!isSignedIn && loaded ? getProfileUpdatedAt() : null);
+      // Sign-in/out swaps the *source* the profile comes from (localStorage
+      // vs. the database) — exactly the "data replaced from outside the
+      // wizard" case the reset nonce exists for. Without this, an already-
+      // mounted ProfileWizard would keep the draft it lazily initialized
+      // from before the switch, since its internal state doesn't notice
+      // initialProfile changing under it.
+      setWizardResetNonce((n) => n + 1);
     });
     return () => {
       cancelled = true;
