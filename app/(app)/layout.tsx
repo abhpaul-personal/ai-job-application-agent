@@ -1,4 +1,6 @@
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
+import { ChatAnalysisProvider } from "@/components/ChatAnalysisContext";
+import { GlobalChatAssistant } from "@/components/GlobalChatAssistant";
 import { ProfileMigrationPrompt } from "@/components/ProfileMigrationPrompt";
 import { ProfileStatusProvider } from "@/components/ProfileStatusContext";
 import { SideNav } from "@/components/SideNav";
@@ -18,13 +20,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <AuthSessionProvider>
       <ProfileStatusProvider>
         <TrackerStatusProvider>
-          <div className="flex flex-1 flex-col sm:flex-row">
-            <SideNav />
-            <div className="flex flex-1 flex-col">
-              <ProfileMigrationPrompt />
-              {children}
+          <ChatAnalysisProvider>
+            <div className="flex flex-1 flex-col sm:flex-row">
+              <SideNav />
+              <div className="flex flex-1 flex-col">
+                <ProfileMigrationPrompt />
+                {children}
+              </div>
             </div>
-          </div>
+            <GlobalChatAssistant />
+          </ChatAnalysisProvider>
         </TrackerStatusProvider>
       </ProfileStatusProvider>
     </AuthSessionProvider>

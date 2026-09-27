@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChatAssistant } from "@/components/ChatAssistant";
+import { useChatAnalysis } from "@/components/ChatAnalysisContext";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import { Spinner } from "@/components/Spinner";
 import {
@@ -229,6 +229,7 @@ function ApplicationKitView({
 
 export default function AgentPage() {
   const { loadProfile } = useProfileStatus();
+  const { setAnalysis: setGlobalAnalysis } = useChatAnalysis();
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [selectedTrack, setSelectedTrack] = useState("");
   const [jd, setJd] = useState("");
@@ -268,6 +269,16 @@ export default function AgentPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // Publishes this page's analysis to the globally-mounted chat assistant
+    // (GlobalChatAssistant, in app/(app)/layout.tsx) so "why did this score
+    // X" keeps working here specifically — the assistant itself no longer
+    // lives inside this page. Clears back to null on unmount so leaving
+    // /agent doesn't leave a stale analysis in scope on other pages.
+    setGlobalAnalysis(analysis);
+    return () => setGlobalAnalysis(null);
+  }, [analysis, setGlobalAnalysis]);
 
   async function handleRunAnalysis() {
     if (!profile) return;
@@ -361,8 +372,7 @@ export default function AgentPage() {
     : false;
 
   return (
-    <>
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-8 px-6 py-12">
         <h1 className="text-2xl font-semibold tracking-tight">Run a job fit analysis</h1>
 
         {weeklyCount > 0 && (
@@ -450,8 +460,6 @@ export default function AgentPage() {
             onRecruiterDmChange={setRecruiterDmDraft}
           />
         )}
-      </main>
-      <ChatAssistant profile={profile} analysis={analysis} />
-    </>
+    </main>
   );
 }
