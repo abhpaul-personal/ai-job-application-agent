@@ -3,7 +3,7 @@
 import { signIn, signOut, useSession } from "next-auth/react";
 
 const PILL_CLASS =
-  "rounded-full border border-foreground/15 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5";
+  "rounded-full border border-foreground/15 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-foreground/5";
 
 export function AuthStatus() {
   const { data: session, status } = useSession();
@@ -17,7 +17,7 @@ export function AuthStatus() {
 
   if (status === "authenticated") {
     return (
-      <div className="flex items-center gap-2 text-xs text-text-secondary">
+      <div className="flex items-center gap-2 text-sm text-text-secondary">
         <span className="hidden sm:inline">{session.user?.email}</span>
         <button type="button" className={PILL_CLASS} onClick={() => signOut()}>
           Sign out
