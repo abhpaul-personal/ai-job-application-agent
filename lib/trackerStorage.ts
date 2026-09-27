@@ -1,6 +1,22 @@
 import { TRACKER_STORAGE_KEY, type TrackerRecord } from "./schema";
 import type { KeyValueStorage } from "./profileStorage";
 
+// The blank-record shape shared by the add form (TrackerView.tsx) and the
+// chat-draft merge (trackerChatDraft.ts) — one place for the field list so
+// adding/renaming a tracker field only ever needs a schema.ts change here.
+export function emptyTrackerFields(): Omit<TrackerRecord, "id" | "lastUpdatedDate"> {
+  return {
+    role: "",
+    company: "",
+    track: "",
+    compBand: "",
+    source: "",
+    appliedDate: "",
+    status: "Applied",
+    nextAction: "",
+  };
+}
+
 function readAll(storage: KeyValueStorage): TrackerRecord[] {
   const raw = storage.getItem(TRACKER_STORAGE_KEY);
   if (!raw) return [];

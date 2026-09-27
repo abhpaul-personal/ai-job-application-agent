@@ -9,7 +9,7 @@ import {
 } from "./agentPrompts";
 import { compileSystemPrompt } from "./compilePrompt";
 import { defaultProfile } from "./loadProfile";
-import type { FitAnalysis, Profile } from "./schema";
+import type { FitAnalysis, Profile, TrackerRecord } from "./schema";
 
 describe("buildAnalysisUserMessage", () => {
   it("includes the job description verbatim", () => {
@@ -63,6 +63,14 @@ describe("buildChatSystemPrompt", () => {
     expect(prompt).toContain("just apply for me");
     expect(prompt).toContain("concise");
   });
+
+  it("includes the tracker-action capability and its own hard limits", () => {
+    const prompt = buildChatSystemPrompt(defaultProfile);
+    expect(prompt).toContain("trackerDraft");
+    expect(prompt).toContain("never write a tracker record yourself");
+    expect(prompt).toContain("do not guess which one");
+    expect(prompt).toContain("which one they mean");
+  });
 });
 
 describe("buildChatUserMessage", () => {
@@ -89,6 +97,42 @@ describe("buildChatUserMessage", () => {
   it("says plainly that no analysis exists yet when none is provided", () => {
     const message = buildChatUserMessage("what does my agent know about me");
     expect(message).toContain("No fit analysis has been run yet");
+  });
+
+  it("says the tracker has no records yet when none are given", () => {
+    const message = buildChatUserMessage("add Agoda TPM, applied yesterday");
+    expect(message).toContain("no records yet");
+  });
+
+  it("lists each tracker record's id, company, role, and status for matching", () => {
+    const trackerRecords: TrackerRecord[] = [
+      {
+        id: "record-1",
+        role: "TPM",
+        company: "Agoda",
+        track: "TPM",
+        compBand: "",
+        source: "",
+        appliedDate: "2026-07-01",
+        lastUpdatedDate: "2026-07-01",
+        status: "Applied",
+        nextAction: "",
+      },
+    ];
+    const message = buildChatUserMessage(
+      "mark the Agoda one as Interview",
+      undefined,
+      trackerRecords,
+    );
+    expect(message).toContain("record-1");
+    expect(message).toContain("Agoda");
+    expect(message).toContain("TPM");
+    expect(message).toContain("Applied");
+  });
+
+  it("includes today's date so relative dates can be resolved", () => {
+    const message = buildChatUserMessage("add Agoda TPM, applied yesterday", undefined, [], "2026-07-15");
+    expect(message).toContain("2026-07-15");
   });
 });
 

@@ -5,6 +5,7 @@ import {
   AgentRequestSchema,
   ApplicationKitSchema,
   ChatRequestSchema,
+  ChatResponseSchema,
   FitAnalysisSchema,
   ProfileSchema,
   TrackerDraftSchema,
@@ -161,6 +162,63 @@ describe("ChatRequestSchema", () => {
         profile: exampleProfileRaw,
         message: "hi",
         history: [{ role: "system", content: "hi" }],
+      }),
+    ).toThrow();
+  });
+
+  it("accepts a chat request with a tracker records list", () => {
+    expect(() =>
+      ChatRequestSchema.parse({
+        stage: "chat",
+        profile: exampleProfileRaw,
+        message: "mark the Agoda one as Interview",
+        trackerRecords: [
+          {
+            id: "record-1",
+            role: "TPM",
+            company: "Agoda",
+            track: "TPM",
+            compBand: "",
+            source: "",
+            appliedDate: "2026-07-01",
+            lastUpdatedDate: "2026-07-01",
+            status: "Applied",
+            nextAction: "",
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+});
+
+describe("ChatResponseSchema", () => {
+  it("accepts a plain reply with no trackerDraft", () => {
+    expect(() => ChatResponseSchema.parse({ message: "You're all set." })).not.toThrow();
+  });
+
+  it("accepts a response with a new-record trackerDraft (no matchedRecordId)", () => {
+    expect(() =>
+      ChatResponseSchema.parse({
+        message: "Here's a draft for that.",
+        trackerDraft: { company: "Agoda", role: "TPM", status: "Applied" },
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts a response with an update trackerDraft (matchedRecordId set)", () => {
+    expect(() =>
+      ChatResponseSchema.parse({
+        message: "Updating that one.",
+        trackerDraft: { matchedRecordId: "record-1", status: "Interview" },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects an unrecognised status inside trackerDraft", () => {
+    expect(() =>
+      ChatResponseSchema.parse({
+        message: "...",
+        trackerDraft: { status: "Ghosted" },
       }),
     ).toThrow();
   });

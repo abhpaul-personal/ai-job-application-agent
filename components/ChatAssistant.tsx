@@ -1,9 +1,19 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/Spinner";
+import { useTrackerStatus } from "@/components/TrackerStatusContext";
 import { inputClass } from "@/components/uiClasses";
-import type { ChatMessage, FitAnalysis, Profile } from "@/lib/schema";
+import { describeTrackerDraft, mergeChatTrackerDraft } from "@/lib/trackerChatDraft";
+import {
+  TRACKER_CHAT_DRAFT_HANDOFF_KEY,
+  type ChatMessage,
+  type ChatTrackerDraft,
+  type FitAnalysis,
+  type Profile,
+  type TrackerRecord,
+} from "@/lib/schema";
 
 function ChatBubbleIcon() {
   return (
@@ -67,11 +77,22 @@ export function ChatAssistant({
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [trackerRecords, setTrackerRecords] = useState<TrackerRecord[]>([]);
+  const [pendingDraft, setPendingDraft] = useState<ChatTrackerDraft | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const { listRecords, saveRecord } = useTrackerStatus();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, status]);
+  }, [messages, status, pendingDraft]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    listRecords().then(setTrackerRecords);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   async function handleSend() {
     const text = input.trim();
@@ -82,6 +103,9 @@ export function ChatAssistant({
     setInput("");
     setStatus("loading");
     setErrorMessage("");
+    // A new message supersedes any not-yet-confirmed draft from a prior
+    // reply — nothing was written, so there's nothing to reconcile.
+    setPendingDraft(null);
 
     try {
       const res = await fetch("/api/agent", {
@@ -91,6 +115,7 @@ export function ChatAssistant({
           stage: "chat",
           profile,
           analysis: analysis ?? undefined,
+          trackerRecords,
           message: text,
           history,
         }),
@@ -102,11 +127,34 @@ export function ChatAssistant({
         return;
       }
       setMessages((m) => [...m, { role: "assistant", content: body.data.message as string }]);
+      setPendingDraft((body.data.trackerDraft as ChatTrackerDraft | undefined) ?? null);
       setStatus("idle");
     } catch {
       setStatus("error");
       setErrorMessage("Could not reach the server. Check your connection and try again.");
     }
+  }
+
+  async function handleConfirmDraft() {
+    if (!pendingDraft) return;
+    setSavingDraft(true);
+    const { record, matchedId } = mergeChatTrackerDraft(pendingDraft, trackerRecords);
+    await saveRecord({ ...record, id: matchedId ?? crypto.randomUUID() });
+    setTrackerRecords(await listRecords());
+    setMessages((m) => [...m, { role: "assistant", content: "Saved to your tracker." }]);
+    setPendingDraft(null);
+    setSavingDraft(false);
+  }
+
+  function handleEditDraft() {
+    if (!pendingDraft) return;
+    sessionStorage.setItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY, JSON.stringify(pendingDraft));
+    setPendingDraft(null);
+    router.push("/tracker");
+  }
+
+  function handleCancelDraft() {
+    setPendingDraft(null);
   }
 
   return (
@@ -153,6 +201,44 @@ export function ChatAssistant({
               </div>
             )}
             {status === "error" && <p className="text-sm text-fit-low">{errorMessage}</p>}
+            {pendingDraft && (
+              <div className="flex flex-col gap-2 self-stretch rounded-xl border border-foreground/10 bg-foreground/5 px-3 py-2 text-sm">
+                <p className="font-medium">
+                  {pendingDraft.matchedRecordId ? "Update this tracker record?" : "Add this to your tracker?"}
+                </p>
+                {describeTrackerDraft(pendingDraft).map((line) => (
+                  <p key={line} className="text-text-secondary">
+                    {line}
+                  </p>
+                ))}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-full bg-accent px-4 py-2 text-xs font-medium text-on-accent transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={savingDraft}
+                    onClick={handleConfirmDraft}
+                  >
+                    {savingDraft ? "Saving…" : "Confirm"}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={savingDraft}
+                    onClick={handleEditDraft}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-full border border-foreground/15 px-4 py-2 text-xs font-medium text-foreground transition-colors hover:bg-foreground/5 disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={savingDraft}
+                    onClick={handleCancelDraft}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
             <div ref={bottomRef} />
           </div>
 

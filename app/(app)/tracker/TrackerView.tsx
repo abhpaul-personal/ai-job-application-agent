@@ -10,21 +10,33 @@ import {
   secondaryButtonClass,
   textareaClass,
 } from "@/components/uiClasses";
-import { TrackerStatusSchema, type TrackerRecord } from "@/lib/schema";
+import { mergeChatTrackerDraft } from "@/lib/trackerChatDraft";
+import { emptyTrackerFields } from "@/lib/trackerStorage";
+import {
+  TRACKER_CHAT_DRAFT_HANDOFF_KEY,
+  TrackerStatusSchema,
+  type ChatTrackerDraft,
+  type TrackerRecord,
+} from "@/lib/schema";
 
 type DraftRecord = Omit<TrackerRecord, "id" | "lastUpdatedDate"> & { id?: string };
 
 function emptyDraft(): DraftRecord {
-  return {
-    role: "",
-    company: "",
-    track: "",
-    compBand: "",
-    source: "",
-    appliedDate: "",
-    status: "Applied",
-    nextAction: "",
-  };
+  return emptyTrackerFields();
+}
+
+// One-shot: the chat assistant's Edit button stashes its draft here right
+// before navigating to this page, so its confirm/edit/cancel card can hand
+// off to this exact same add/edit form instead of building a second one.
+function readAndClearChatDraftHandoff(): ChatTrackerDraft | null {
+  const raw = sessionStorage.getItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY);
+  if (!raw) return null;
+  sessionStorage.removeItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY);
+  try {
+    return JSON.parse(raw) as ChatTrackerDraft;
+  } catch {
+    return null;
+  }
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -210,7 +222,13 @@ export function TrackerView() {
   useEffect(() => {
     let cancelled = false;
     listRecords().then((loaded) => {
-      if (!cancelled) setRecords(loaded);
+      if (cancelled) return;
+      setRecords(loaded);
+      const chatDraft = readAndClearChatDraftHandoff();
+      if (chatDraft) {
+        const { record, matchedId } = mergeChatTrackerDraft(chatDraft, loaded);
+        setEditing({ ...record, id: matchedId ?? undefined });
+      }
     });
     return () => {
       cancelled = true;

@@ -123,20 +123,6 @@ export const ChatMessageSchema = z.object({
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
-export const ChatRequestSchema = z.object({
-  stage: z.literal("chat"),
-  profile: ProfileSchema,
-  analysis: FitAnalysisSchema.optional(),
-  message: z.string(),
-  history: ChatMessageSchema.array().optional(),
-});
-
-export const ChatResponseSchema = z.object({
-  message: z.string(),
-});
-
-export type ChatResponse = z.infer<typeof ChatResponseSchema>;
-
 export const TrackerStatusSchema = z.enum([
   "Applied",
   "Screening",
@@ -172,6 +158,40 @@ export const TrackerDraftSchema = TrackerRecordSchema.omit({
 }).partial();
 
 export type TrackerDraft = z.infer<typeof TrackerDraftSchema>;
+
+// Same shape as TrackerDraftSchema, plus the id of an existing record to
+// patch — set by the chat model when a message reads as an update to a
+// record already in the list it was given, omitted for a new record.
+export const ChatTrackerDraftSchema = TrackerDraftSchema.extend({
+  matchedRecordId: z.string().optional(),
+});
+
+export type ChatTrackerDraft = z.infer<typeof ChatTrackerDraftSchema>;
+
+export const ChatRequestSchema = z.object({
+  stage: z.literal("chat"),
+  profile: ProfileSchema,
+  analysis: FitAnalysisSchema.optional(),
+  // The user's current tracker list, so the chat model can match "the
+  // Stripe one" to a real id instead of guessing — see POSITIONING.md
+  // Section 3's confirm-before-write requirement.
+  trackerRecords: TrackerRecordSchema.array().optional(),
+  message: z.string(),
+  history: ChatMessageSchema.array().optional(),
+});
+
+export const ChatResponseSchema = z.object({
+  message: z.string(),
+  // Present only when the message read as a clear, unambiguous tracker
+  // action. The chat assistant never writes this itself — it's rendered as
+  // a confirm/edit/cancel card and only written via the app's existing
+  // tracker CRUD (TrackerStatusContext.saveRecord) on explicit confirm.
+  trackerDraft: ChatTrackerDraftSchema.optional(),
+});
+
+export type ChatResponse = z.infer<typeof ChatResponseSchema>;
+
+export const TRACKER_CHAT_DRAFT_HANDOFF_KEY = "aka.trackerChatDraft";
 
 export const TrackerExtractRequestSchema = z.object({
   stage: z.literal("trackerExtract"),

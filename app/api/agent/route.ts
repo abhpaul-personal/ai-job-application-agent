@@ -69,7 +69,7 @@ function runStage(input: AgentRequest, callModel: CallModel) {
       return runAgentStage({
         callModel,
         system: buildChatSystemPrompt(input.profile),
-        userMessage: buildChatUserMessage(input.message, input.analysis),
+        userMessage: buildChatUserMessage(input.message, input.analysis, input.trackerRecords),
         schema: ChatResponseSchema,
         history: (input.history ?? []).map((h) => ({ role: h.role, content: h.content })),
       });

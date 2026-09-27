@@ -1,5 +1,5 @@
 import { compileSystemPrompt } from "./compilePrompt";
-import type { FitAnalysis, Profile } from "./schema";
+import type { FitAnalysis, Profile, TrackerRecord } from "./schema";
 
 // Capped, not exact, token budgets — keeps per-run cost down per PRD §6.
 export const MAX_TOKENS = {
@@ -12,8 +12,9 @@ export const MAX_TOKENS = {
   // explicit "at most 8" instruction below are the two halves of the fix.
   extract: 1600,
   // Deliberately small — a chat aside should read as a short reply, not a
-  // drafted document. See docs/PHASE2-ROADMAP.md section 2.
-  chat: 500,
+  // drafted document. See docs/PHASE2-ROADMAP.md section 2. Bumped from 500
+  // since a response can now also carry a trackerDraft object.
+  chat: 700,
   // A single tracker record's worth of fields — smaller than story-bank
   // extraction since there's exactly one record to fill, not up to 8.
   trackerExtract: 600,
@@ -96,26 +97,63 @@ export function buildExtractUserMessage(rawInput: string): string {
 // Verbatim from docs/PHASE2-ROADMAP.md section 3 ("hard boundaries") — this
 // is the part of the feature most likely to erode under normal
 // feature-building pressure, so it stays close to the roadmap's own wording
-// rather than being paraphrased.
+// rather than being paraphrased. The tracker-action capability appended
+// below is additive (per docs/POSITIONING.md Section 3) and keeps every one
+// of these refusal/redirect clauses unchanged.
 const CHAT_BOUNDARY_INSTRUCTION = [
   "You are also available for a short conversational aside about the candidate's own profile and, if one is provided below, their current fit analysis for a specific job.",
   "You may only discuss and explain: the candidate profile in your system prompt above, and the fit analysis provided below if any. You have no other data and no tools.",
   "You cannot trigger a fit analysis, generate an application kit, or modify the candidate's profile — you have no ability to do any of those things, only to discuss them.",
   'If asked to perform any of those actions (e.g. "just apply for me", "update my salary floor", "run the analysis"), do not refuse curtly and do not pretend to comply — explain honestly what you can discuss versus what still requires the person to use the relevant part of the app (e.g. the "Generate application kit" button on this screen, or the Settings page to edit their profile).',
   "Keep responses concise — this is a conversational aside, not a drafting surface.",
+  "You may also turn a clear application-tracker action (e.g. \"add Agoda TPM, applied yesterday\", \"mark the Stripe one as Interview\") into a draft tracker record, using the tracker list given below to find the record being referred to. Put it in the trackerDraft field of your response — set matchedRecordId to that record's id for an update, or omit it for a new record.",
+  "You never write a tracker record yourself — trackerDraft is only ever a proposal the app shows the person to confirm, edit, or cancel before anything is saved.",
+  "If a message could plausibly refer to more than one existing record, do not guess which one — omit trackerDraft entirely and ask in your message which one they mean.",
+  "Only use facts actually present in the message for trackerDraft fields — never invent a company, role, or date, and omit any field the message doesn't mention.",
 ].join(" ");
 
 export function buildChatSystemPrompt(profile: Profile): string {
   return [compileSystemPrompt(profile), "", CHAT_BOUNDARY_INSTRUCTION].join("\n");
 }
 
-const CHAT_RESPONSE_SHAPE = `{ "message": "<string>" }`;
+const CHAT_RESPONSE_SHAPE = `{
+  "message": "<string>",
+  "trackerDraft": {
+    "role": "<string, omit if not mentioned>",
+    "company": "<string, omit if not mentioned>",
+    "track": "<string, omit if not mentioned>",
+    "compBand": "<string, omit if not mentioned>",
+    "source": "<string, omit if not mentioned>",
+    "appliedDate": "<ISO date string YYYY-MM-DD, resolve relative dates against today's date given below — omit if not mentioned>",
+    "status": "Applied" | "Screening" | "Interview" | "Offer" | "Rejected" | "Withdrawn",
+    "nextAction": "<string, omit if not mentioned>",
+    "matchedRecordId": "<id of an existing record from the list below, only when patching it — omit for a new record>"
+  }
+} // omit the whole trackerDraft key unless the message is a clear, unambiguous tracker action`;
 
-export function buildChatUserMessage(message: string, analysis?: FitAnalysis): string {
+function formatTrackerRecordsForPrompt(trackerRecords: TrackerRecord[]): string {
+  if (trackerRecords.length === 0) return "The tracker has no records yet.";
+  return [
+    "Current tracker records (use these ids for matchedRecordId, never invent one):",
+    ...trackerRecords.map(
+      (r) => `id: ${r.id}, company: ${r.company}, role: ${r.role}, status: ${r.status}`,
+    ),
+  ].join("\n");
+}
+
+export function buildChatUserMessage(
+  message: string,
+  analysis?: FitAnalysis,
+  trackerRecords: TrackerRecord[] = [],
+  today: string = new Date().toISOString().slice(0, 10),
+): string {
   return [
     analysis
       ? `Current fit analysis for this session:\n${JSON.stringify(analysis, null, 2)}`
       : "No fit analysis has been run yet in this session.",
+    "",
+    `Today's date is ${today}.`,
+    formatTrackerRecordsForPrompt(trackerRecords),
     "",
     "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences):",
     CHAT_RESPONSE_SHAPE,
