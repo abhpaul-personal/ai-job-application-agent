@@ -7,12 +7,15 @@ import { ProfileSchema, type Profile } from "./schema";
 
 export type SqlQuery = NeonQueryFunction<false, false>;
 
-// Lazily constructed so importing this module doesn't require POSTGRES_URL
-// to be set (e.g. in tests, which always inject a fake `sql` instead).
+// Lazily constructed so importing this module doesn't require the
+// connection string to be set (e.g. in tests, which always inject a fake
+// `sql` instead). POSTGRES_URL is our documented name (.env.example,
+// db/schema.sql), but Vercel's own Neon integration names it DATABASE_URL —
+// accepting either avoids needing the same value under two env var names.
 function getSql(): SqlQuery {
-  const connectionString = process.env.POSTGRES_URL;
+  const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("POSTGRES_URL is not set.");
+    throw new Error("POSTGRES_URL (or DATABASE_URL) is not set.");
   }
   return neon(connectionString);
 }
