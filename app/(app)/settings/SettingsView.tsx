@@ -3,17 +3,12 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import { labelClass, secondaryButtonClass } from "@/components/uiClasses";
-import {
-  clearProfile,
-  formatRelativeTime,
-  getProfileUpdatedAt,
-  saveProfile,
-} from "@/lib/profileStorage";
-import { PROFILE_STORAGE_KEY, ProfileSchema, type Profile } from "@/lib/schema";
+import { formatRelativeTime, getProfileUpdatedAt } from "@/lib/profileStorage";
+import { ProfileSchema, type Profile } from "@/lib/schema";
 import { ProfileWizard } from "./ProfileWizard";
 
 export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
-  const { refresh } = useProfileStatus();
+  const { refresh, isSignedIn, loadProfile, saveProfile, clearProfile } = useProfileStatus();
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [importError, setImportError] = useState("");
@@ -26,23 +21,23 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
   const [wizardResetNonce, setWizardResetNonce] = useState(0);
 
   useEffect(() => {
-    // Client-only localStorage read on mount; can't happen during SSR, and
-    // must land in state (not a lazy useState initializer) or the server
-    // and first client render would mismatch.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) {
-      setProfile(null);
-      return;
-    }
-    try {
-      setProfile(JSON.parse(raw) as Profile);
-      setUpdatedAt(getProfileUpdatedAt());
-    } catch {
-      setProfile(null);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-  }, []);
+    // Client-only read on mount; can't happen during SSR, and must land in
+    // state (not a lazy useState initializer) or the server and first
+    // client render would mismatch. loadProfile() reads localStorage or the
+    // database depending on sign-in state. "Profile last updated" only has
+    // meaning for the localStorage timestamp today — skipped for signed-in
+    // users rather than showing a stale or wrong value.
+    let cancelled = false;
+    loadProfile().then((loaded) => {
+      if (cancelled) return;
+      setProfile(loaded);
+      setUpdatedAt(!isSignedIn && loaded ? getProfileUpdatedAt() : null);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn]);
 
   function handleExport() {
     if (!profile) return;
@@ -63,9 +58,9 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     try {
       const text = await file.text();
       const parsed = ProfileSchema.parse(JSON.parse(text));
-      saveProfile(parsed);
+      await saveProfile(parsed);
       setProfile(parsed);
-      setUpdatedAt(getProfileUpdatedAt());
+      setUpdatedAt(!isSignedIn ? getProfileUpdatedAt() : null);
       setWizardResetNonce((n) => n + 1);
       refresh();
     } catch {
@@ -75,8 +70,8 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     }
   }
 
-  function handleClear() {
-    clearProfile();
+  async function handleClear() {
+    await clearProfile();
     setProfile(null);
     setUpdatedAt(null);
     setConfirmingClear(false);
@@ -84,16 +79,9 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     refresh();
   }
 
-  function handleWizardSaved() {
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (raw) {
-      try {
-        setProfile(JSON.parse(raw) as Profile);
-      } catch {
-        // The wizard itself just wrote this via saveProfile() — it's valid.
-      }
-    }
-    setUpdatedAt(getProfileUpdatedAt());
+  function handleWizardSaved(savedProfile: Profile) {
+    setProfile(savedProfile);
+    setUpdatedAt(!isSignedIn ? getProfileUpdatedAt() : null);
   }
 
   if (profile === undefined) {
@@ -138,7 +126,8 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
             {confirmingClear ? (
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-fit-low">
-                  Are you sure? This deletes your profile from this browser and can&apos;t be
+                  Are you sure? This deletes your profile
+                  {isSignedIn ? " from your account" : " from this browser"} and can&apos;t be
                   undone.
                 </p>
                 <div className="flex gap-2">

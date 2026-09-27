@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChatAssistant } from "@/components/ChatAssistant";
+import { useProfileStatus } from "@/components/ProfileStatusContext";
 import { Spinner } from "@/components/Spinner";
 import {
   cardClass,
@@ -14,7 +15,7 @@ import {
 } from "@/components/uiClasses";
 import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
-import { PROFILE_STORAGE_KEY, type ApplicationKit, type FitAnalysis, type Profile } from "@/lib/schema";
+import type { ApplicationKit, FitAnalysis, Profile } from "@/lib/schema";
 
 const RECRUITER_DM_LIMIT = 300;
 
@@ -227,6 +228,7 @@ function ApplicationKitView({
 }
 
 export default function AgentPage() {
+  const { loadProfile } = useProfileStatus();
   const [profile, setProfile] = useState<Profile | null | undefined>(undefined);
   const [selectedTrack, setSelectedTrack] = useState("");
   const [jd, setJd] = useState("");
@@ -248,23 +250,23 @@ export default function AgentPage() {
   }, []);
 
   useEffect(() => {
-    // Client-only localStorage read on mount; can't happen during SSR, and
-    // must land in state (not a lazy useState initializer) or the server
-    // and first client render would mismatch.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-    if (!raw) {
-      setProfile(null);
-      return;
-    }
-    try {
-      const parsed = JSON.parse(raw) as Profile;
-      setProfile(parsed);
-      setSelectedTrack(parsed.targets.roleTypes[0] ?? "");
-    } catch {
-      setProfile(null);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
+    // Client-only read on mount; can't happen during SSR, and must land in
+    // state (not a lazy useState initializer) or the server and first
+    // client render would mismatch. loadProfile() reads localStorage or the
+    // database depending on sign-in state — this component doesn't need to
+    // know which.
+    let cancelled = false;
+    loadProfile().then((loaded) => {
+      if (cancelled) return;
+      setProfile(loaded);
+      if (loaded) {
+        setSelectedTrack(loaded.targets.roleTypes[0] ?? "");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleRunAnalysis() {

@@ -19,7 +19,6 @@ import {
   type ImportedProfileFields,
   type ProfileDraft,
 } from "@/lib/draftProfile";
-import { saveProfile } from "@/lib/profileStorage";
 import { WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
@@ -510,10 +509,10 @@ export function ProfileWizard({
 }: {
   defaultProfile: Profile;
   initialProfile?: Profile;
-  onSaved?: () => void;
+  onSaved?: (profile: Profile) => void;
 }) {
   const router = useRouter();
-  const { refresh } = useProfileStatus();
+  const { refresh, saveProfile } = useProfileStatus();
   const isEditing = !!initialProfile;
   const [stepIndex, setStepIndex] = useState(0);
   const [showRestartNotice, setShowRestartNotice] = useState(false);
@@ -633,11 +632,11 @@ export function ProfileWizard({
     setStepIndex(0);
   }
 
-  function handleSave() {
-    saveProfile(mergedProfile);
+  async function handleSave() {
+    await saveProfile(mergedProfile);
     sessionStorage.removeItem(WIZARD_IN_PROGRESS_KEY);
     refresh();
-    onSaved?.();
+    onSaved?.(mergedProfile);
     // First-time setup: take the user straight to the main loop. Editing an
     // existing profile: stay put — jumping away the instant "Save changes"
     // is clicked would be jarring now that both tabs are meant to be

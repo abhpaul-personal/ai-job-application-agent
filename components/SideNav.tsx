@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { AuthStatus } from "@/components/AuthStatus";
 import { Logo } from "@/components/Logo";
 import { useProfileStatus } from "@/components/ProfileStatusContext";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -44,6 +45,9 @@ export function SideNav() {
       >
         Run Job Fit Analysis
       </Link>
+      <div className="sm:mt-auto">
+        <AuthStatus />
+      </div>
     </nav>
   );
 }
