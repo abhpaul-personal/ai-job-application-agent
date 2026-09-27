@@ -37,7 +37,9 @@ export function SideNav() {
           <ThemeToggle />
         </div>
         {status === "authenticated" && session.user?.name && (
-          <span className="text-xs text-text-secondary">Welcome {session.user.name}</span>
+          <span className="text-sm font-semibold tracking-tight sm:text-base">
+            Welcome, {session.user.name}
+          </span>
         )}
       </div>
       <Link
