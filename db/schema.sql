@@ -8,3 +8,15 @@ create table if not exists profiles (
   profile jsonb not null,
   updated_at timestamptz not null default now()
 );
+
+-- One row per application-tracker record (a list per user, unlike the
+-- single-row-per-user profiles table above), same TrackerRecord JSON shape
+-- as lib/schema.ts.
+create table if not exists tracker_records (
+  id text primary key,
+  user_id text not null,
+  record jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists tracker_records_user_id_idx on tracker_records (user_id);

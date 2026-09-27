@@ -23,6 +23,7 @@ export function SideNav() {
   const tab1Label = hasProfile ? "Agent Settings" : "Set Up My Agent";
   const tab1Active = pathname.startsWith("/settings");
   const tab2Active = pathname.startsWith("/agent");
+  const tab3Active = pathname.startsWith("/tracker");
 
   return (
     <nav className="flex shrink-0 flex-row flex-wrap items-center gap-2 border-b border-foreground/10 px-6 py-4 sm:w-56 sm:flex-col sm:items-stretch sm:border-b-0 sm:border-r sm:px-4 sm:py-8">
@@ -53,6 +54,12 @@ export function SideNav() {
         className={`${NAV_LINK_BASE} ${tab2Active ? NAV_LINK_ACTIVE : NAV_LINK_INACTIVE}`}
       >
         Run Job Fit Analysis
+      </Link>
+      <Link
+        href="/tracker"
+        className={`${NAV_LINK_BASE} ${tab3Active ? NAV_LINK_ACTIVE : NAV_LINK_INACTIVE}`}
+      >
+        Tracker
       </Link>
       {/* Fixed (not sm:mt-auto) so it stays pinned to the viewport corner
           while the page scrolls, instead of sitting at the bottom of

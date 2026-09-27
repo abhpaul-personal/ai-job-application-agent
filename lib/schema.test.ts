@@ -7,6 +7,8 @@ import {
   ChatRequestSchema,
   FitAnalysisSchema,
   ProfileSchema,
+  TrackerDraftSchema,
+  TrackerRecordSchema,
 } from "./schema";
 
 const exampleProfileRaw = JSON.parse(
@@ -172,5 +174,54 @@ describe("AgentRequestSchema", () => {
       message: "what does my agent know about me",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("discriminates a trackerExtract-stage request", () => {
+    const result = AgentRequestSchema.safeParse({
+      stage: "trackerExtract",
+      rawInput: "Got an email from Agoda recruiter about the TPM role, applied yesterday.",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("TrackerRecordSchema", () => {
+  const validRecord = {
+    id: "record-1",
+    role: "TPM",
+    company: "Agoda",
+    track: "TPM",
+    compBand: "40-55 LPA",
+    source: "LinkedIn",
+    appliedDate: "2026-07-01",
+    lastUpdatedDate: "2026-07-01",
+    status: "Applied",
+    nextAction: "Follow up",
+  };
+
+  it("accepts a well-formed tracker record", () => {
+    expect(() => TrackerRecordSchema.parse(validRecord)).not.toThrow();
+  });
+
+  it("rejects an unrecognised status", () => {
+    expect(() => TrackerRecordSchema.parse({ ...validRecord, status: "Ghosted" })).toThrow();
+  });
+});
+
+describe("TrackerDraftSchema", () => {
+  it("accepts a partial draft with only some fields present", () => {
+    expect(() =>
+      TrackerDraftSchema.parse({ company: "Agoda", status: "Applied" }),
+    ).not.toThrow();
+  });
+
+  it("accepts an empty object", () => {
+    expect(() => TrackerDraftSchema.parse({})).not.toThrow();
+  });
+
+  it("rejects an id field (server-assigned, never part of a draft)", () => {
+    expect(() =>
+      TrackerDraftSchema.strict().parse({ id: "record-1", company: "Agoda" }),
+    ).toThrow();
   });
 });

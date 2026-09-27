@@ -3,7 +3,7 @@
 // Never import this from a "use client" component.
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { z } from "zod";
-import { ProfileSchema, type Profile } from "./schema";
+import { ProfileSchema, TrackerRecordSchema, type Profile, type TrackerRecord } from "./schema";
 
 export type SqlQuery = NeonQueryFunction<false, false>;
 
@@ -60,4 +60,46 @@ export async function deleteProfileForUser(
   sql: SqlQuery = getSql(),
 ): Promise<void> {
   await sql`delete from profiles where user_id = ${userId}`;
+}
+
+export async function getTrackerRecordsForUser(
+  userId: string,
+  sql: SqlQuery = getSql(),
+): Promise<TrackerRecord[]> {
+  const rows = await sql`select record from tracker_records where user_id = ${userId}`;
+  const records: TrackerRecord[] = [];
+  for (const row of rows) {
+    const parsed = TrackerRecordSchema.safeParse(row.record);
+    if (parsed.success) {
+      records.push(parsed.data);
+    } else {
+      // Same discipline as getProfileForUser: never log the raw issue
+      // messages, since they can echo back the user's own stored values.
+      const detail = parsed.error.issues
+        .map((issue) => `${issue.path.join(".")} (${issue.code})`)
+        .join(", ");
+      console.warn(`Stored tracker record does not match TrackerRecordSchema (${detail}); skipping it.`);
+    }
+  }
+  return records;
+}
+
+export async function saveTrackerRecordForUser(
+  userId: string,
+  record: TrackerRecord,
+  sql: SqlQuery = getSql(),
+): Promise<void> {
+  await sql`
+    insert into tracker_records (id, user_id, record, updated_at)
+    values (${record.id}, ${userId}, ${JSON.stringify(record)}::jsonb, now())
+    on conflict (id) do update set record = excluded.record, updated_at = excluded.updated_at
+  `;
+}
+
+export async function deleteTrackerRecordForUser(
+  userId: string,
+  id: string,
+  sql: SqlQuery = getSql(),
+): Promise<void> {
+  await sql`delete from tracker_records where id = ${id} and user_id = ${userId}`;
 }

@@ -1,6 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
-import { deleteProfileForUser, getProfileForUser, saveProfileForUser, type SqlQuery } from "./db";
+import {
+  deleteProfileForUser,
+  deleteTrackerRecordForUser,
+  getProfileForUser,
+  getTrackerRecordsForUser,
+  saveProfileForUser,
+  saveTrackerRecordForUser,
+  type SqlQuery,
+} from "./db";
 import { defaultProfile } from "./loadProfile";
+import type { TrackerRecord } from "./schema";
+
+const trackerRecord: TrackerRecord = {
+  id: "record-1",
+  role: "TPM",
+  company: "Agoda",
+  track: "TPM",
+  compBand: "40-55 LPA",
+  source: "LinkedIn",
+  appliedDate: "2026-07-01",
+  lastUpdatedDate: "2026-07-01",
+  status: "Applied",
+  nextAction: "Follow up",
+};
 
 // A fake tagged-template query function — records what it was called with
 // and returns canned rows, so this is testable without a real database.
@@ -56,5 +78,51 @@ describe("deleteProfileForUser", () => {
     expect((sql as unknown as { calls: { values: unknown[] }[] }).calls[0].values).toContain(
       "user-1",
     );
+  });
+});
+
+describe("getTrackerRecordsForUser", () => {
+  it("returns an empty array when there are no rows", async () => {
+    const sql = fakeSql([]);
+    expect(await getTrackerRecordsForUser("user-1", sql)).toEqual([]);
+  });
+
+  it("returns parsed records for valid rows", async () => {
+    const sql = fakeSql([{ record: trackerRecord }]);
+    expect(await getTrackerRecordsForUser("user-1", sql)).toEqual([trackerRecord]);
+  });
+
+  it("queries by the given user id", async () => {
+    const sql = fakeSql([]);
+    await getTrackerRecordsForUser("user-42", sql);
+    expect((sql as unknown as { calls: { values: unknown[] }[] }).calls[0].values).toContain(
+      "user-42",
+    );
+  });
+
+  it("skips a malformed row instead of throwing", async () => {
+    const sql = fakeSql([{ record: { company: "incomplete" } }, { record: trackerRecord }]);
+    expect(await getTrackerRecordsForUser("user-1", sql)).toEqual([trackerRecord]);
+  });
+});
+
+describe("saveTrackerRecordForUser", () => {
+  it("writes the id, user id, and record JSON", async () => {
+    const sql = fakeSql([]);
+    await saveTrackerRecordForUser("user-1", trackerRecord, sql);
+    const { values } = (sql as unknown as { calls: { values: unknown[] }[] }).calls[0];
+    expect(values).toContain("user-1");
+    expect(values).toContain(trackerRecord.id);
+    expect(values).toContain(JSON.stringify(trackerRecord));
+  });
+});
+
+describe("deleteTrackerRecordForUser", () => {
+  it("deletes by id scoped to the given user id", async () => {
+    const sql = fakeSql([]);
+    await deleteTrackerRecordForUser("user-1", "record-1", sql);
+    const { values } = (sql as unknown as { calls: { values: unknown[] }[] }).calls[0];
+    expect(values).toContain("user-1");
+    expect(values).toContain("record-1");
   });
 });

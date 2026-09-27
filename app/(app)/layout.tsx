@@ -2,6 +2,7 @@ import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 import { ProfileMigrationPrompt } from "@/components/ProfileMigrationPrompt";
 import { ProfileStatusProvider } from "@/components/ProfileStatusContext";
 import { SideNav } from "@/components/SideNav";
+import { TrackerStatusProvider } from "@/components/TrackerStatusContext";
 
 // Both /settings and /agent are per-user once sign-in exists (their content
 // depends on session + profile state), so they were never meaningfully
@@ -16,13 +17,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthSessionProvider>
       <ProfileStatusProvider>
-        <div className="flex flex-1 flex-col sm:flex-row">
-          <SideNav />
-          <div className="flex flex-1 flex-col">
-            <ProfileMigrationPrompt />
-            {children}
+        <TrackerStatusProvider>
+          <div className="flex flex-1 flex-col sm:flex-row">
+            <SideNav />
+            <div className="flex flex-1 flex-col">
+              <ProfileMigrationPrompt />
+              {children}
+            </div>
           </div>
-        </div>
+        </TrackerStatusProvider>
       </ProfileStatusProvider>
     </AuthSessionProvider>
   );

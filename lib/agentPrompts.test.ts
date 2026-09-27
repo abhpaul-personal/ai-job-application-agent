@@ -5,6 +5,7 @@ import {
   buildChatUserMessage,
   buildExtractUserMessage,
   buildKitUserMessage,
+  buildTrackerExtractUserMessage,
 } from "./agentPrompts";
 import { compileSystemPrompt } from "./compilePrompt";
 import { defaultProfile } from "./loadProfile";
@@ -88,5 +89,14 @@ describe("buildChatUserMessage", () => {
   it("says plainly that no analysis exists yet when none is provided", () => {
     const message = buildChatUserMessage("what does my agent know about me");
     expect(message).toContain("No fit analysis has been run yet");
+  });
+});
+
+describe("buildTrackerExtractUserMessage", () => {
+  it("includes the raw input verbatim and today's date", () => {
+    const rawInput = "Got an email from Agoda recruiter about the TPM role, applied yesterday.";
+    const message = buildTrackerExtractUserMessage(rawInput, "2026-07-15");
+    expect(message).toContain(rawInput);
+    expect(message).toContain("2026-07-15");
   });
 });

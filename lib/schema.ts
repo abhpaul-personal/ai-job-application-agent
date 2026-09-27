@@ -137,11 +137,53 @@ export const ChatResponseSchema = z.object({
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 
+export const TrackerStatusSchema = z.enum([
+  "Applied",
+  "Screening",
+  "Interview",
+  "Offer",
+  "Rejected",
+  "Withdrawn",
+]);
+
+export const TrackerRecordSchema = z.object({
+  id: z.string(),
+  role: z.string(),
+  company: z.string(),
+  track: z.string(),
+  compBand: z.string(),
+  source: z.string(),
+  appliedDate: z.string(),
+  lastUpdatedDate: z.string(),
+  status: TrackerStatusSchema,
+  nextAction: z.string(),
+});
+
+export type TrackerRecord = z.infer<typeof TrackerRecordSchema>;
+
+export const TRACKER_STORAGE_KEY = "aka.tracker";
+
+// Paste-to-prefill extraction response: same fields as a record minus the
+// server-assigned id/lastUpdatedDate, all optional since a pasted email or
+// JD snippet rarely mentions every field (e.g. compBand is often absent).
+export const TrackerDraftSchema = TrackerRecordSchema.omit({
+  id: true,
+  lastUpdatedDate: true,
+}).partial();
+
+export type TrackerDraft = z.infer<typeof TrackerDraftSchema>;
+
+export const TrackerExtractRequestSchema = z.object({
+  stage: z.literal("trackerExtract"),
+  rawInput: z.string(),
+});
+
 export const AgentRequestSchema = z.discriminatedUnion("stage", [
   AnalysisRequestSchema,
   KitRequestSchema,
   ExtractRequestSchema,
   ChatRequestSchema,
+  TrackerExtractRequestSchema,
 ]);
 
 export type AgentRequest = z.infer<typeof AgentRequestSchema>;

@@ -14,6 +14,9 @@ export const MAX_TOKENS = {
   // Deliberately small — a chat aside should read as a short reply, not a
   // drafted document. See docs/PHASE2-ROADMAP.md section 2.
   chat: 500,
+  // A single tracker record's worth of fields — smaller than story-bank
+  // extraction since there's exactly one record to fill, not up to 8.
+  trackerExtract: 600,
 } as const;
 
 const FIT_ANALYSIS_SHAPE = `{
@@ -119,5 +122,30 @@ export function buildChatUserMessage(message: string, analysis?: FitAnalysis): s
     "",
     "User message:",
     message,
+  ].join("\n");
+}
+
+const TRACKER_DRAFT_SHAPE = `{
+  "role": "<string, omit the field entirely if not mentioned>",
+  "company": "<string, omit the field entirely if not mentioned>",
+  "track": "<string, omit the field entirely if not mentioned>",
+  "compBand": "<string, omit the field entirely if not mentioned>",
+  "source": "<string, e.g. 'LinkedIn', 'Recruiter email', 'Referral' — omit if not mentioned>",
+  "appliedDate": "<ISO date string YYYY-MM-DD, resolve relative dates like 'yesterday' against today's date given below — omit if not mentioned>",
+  "status": "Applied" | "Screening" | "Interview" | "Offer" | "Rejected" | "Withdrawn",
+  "nextAction": "<string, omit the field entirely if not mentioned>"
+}`;
+
+export const TRACKER_EXTRACT_SYSTEM_PROMPT =
+  "You turn a pasted piece of text (a forwarded recruiter email, a job description snippet, or a quick note) into a draft application-tracker record. Only use facts present in the input; never invent a company, role, or date. Omit any field the text doesn't actually mention rather than guessing a value.";
+
+export function buildTrackerExtractUserMessage(rawInput: string, today: string): string {
+  return [
+    `Today's date is ${today}. Extract a draft tracker record from the following pasted text.`,
+    "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences), omitting any key you have no basis for:",
+    TRACKER_DRAFT_SHAPE,
+    "",
+    "Pasted text:",
+    rawInput,
   ].join("\n");
 }

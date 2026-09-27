@@ -1,7 +1,8 @@
 "use client";
 
-import { getSession, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { isCurrentlySignedIn } from "@/lib/authClient";
 import {
   clearProfile as clearLocalProfile,
   saveProfile as saveLocalProfile,
@@ -29,23 +30,6 @@ export function readLocalProfile(): Profile | null {
   } catch {
     return null;
   }
-}
-
-// useSession()'s `status` starts as "loading" on every fresh page load —
-// including the page load right after an OAuth redirect back from Google —
-// and only resolves to "authenticated" a moment later, once its own
-// background fetch to /api/auth/session completes. A real bug lived here:
-// loadProfile()/saveProfile()/clearProfile() used to branch on that reactive
-// `isSignedIn` directly, so a call made during the "loading" window read
-// localStorage instead of the database — and since that value then seeded
-// ProfileWizard's one-time lazy-initialized draft state, it stuck even after
-// the session resolved a moment later and the correct profile arrived.
-// getSession() sidesteps this entirely: it does its own fresh round trip to
-// /api/auth/session every time it's called, so these three functions always
-// act on the actual current server-verified session, never a stale render.
-async function isCurrentlySignedIn(): Promise<boolean> {
-  const session = await getSession();
-  return !!session?.user?.id;
 }
 
 export function ProfileStatusProvider({ children }: { children: ReactNode }) {
