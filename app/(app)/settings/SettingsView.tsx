@@ -13,6 +13,10 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [importError, setImportError] = useState("");
   const [confirmingClear, setConfirmingClear] = useState(false);
+  // Fires for every save path (manual edit, JSON import, resume upload) —
+  // the only save confirmation signed-in users get at all, since updatedAt
+  // below is a localStorage-only timestamp and stays null when signed in.
+  const [justSaved, setJustSaved] = useState(false);
   // Bumped only on import/clear (data replaced from *outside* the wizard) to
   // force ProfileWizard to remount and re-seed its draft — its internal
   // state is otherwise a one-time lazy useState that won't notice
@@ -70,6 +74,7 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
       setUpdatedAt(!isSignedIn ? getProfileUpdatedAt() : null);
       setWizardResetNonce((n) => n + 1);
       refresh();
+      showJustSaved();
     } catch {
       setImportError(
         "That file isn't a valid profile JSON. Export a profile from this app first, or check the format.",
@@ -86,9 +91,15 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     refresh();
   }
 
+  function showJustSaved() {
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 4000);
+  }
+
   function handleWizardSaved(savedProfile: Profile) {
     setProfile(savedProfile);
     setUpdatedAt(!isSignedIn ? getProfileUpdatedAt() : null);
+    showJustSaved();
   }
 
   if (profile === undefined) {
@@ -103,6 +114,9 @@ export function SettingsView({ defaultProfile }: { defaultProfile: Profile }) {
     <main className="flex flex-1 flex-col">
       {profile && (
         <div className="mx-auto flex w-full max-w-xl flex-col gap-6 px-6 pt-12">
+          {justSaved && (
+            <p className="text-sm font-medium text-fit-strong">Saved.</p>
+          )}
           {updatedAt && (
             <p className="text-xs text-text-secondary">
               Profile last updated: {formatRelativeTime(updatedAt)}

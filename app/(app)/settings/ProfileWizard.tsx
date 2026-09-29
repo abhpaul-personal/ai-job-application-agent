@@ -626,6 +626,30 @@ export function ProfileWizard({
     setStepIndex(0);
   }
 
+  // Resume upload gets its own apply function rather than reusing
+  // applyExtractedFields: a resume describes "this is my current state," so
+  // basics/targets fully replace the draft — a field this resume doesn't
+  // mention goes blank, never silently keeps a previous resume's (or the
+  // saved profile's) stale value. storyBank/rules keep the merge-style
+  // "only replace if this extraction found something" fallback deliberately:
+  // resumes essentially never state hard rules (lib/agentPrompts.ts's
+  // PROFILE_EXTRACT_SYSTEM_PROMPT already tells the model as much), so
+  // wiping a curated story bank or rules list on every re-upload would
+  // trade this bug for a worse one.
+  function applyResumeExtraction(fields: ProfileExtract) {
+    const { basics, targets, storyBank, rules } = fields;
+    setDraft((d) => ({
+      basics,
+      targets,
+      storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
+      rules: rules.length > 0 ? rules : d.rules,
+    }));
+    setRoleTypesText((targets.roleTypes ?? []).join(", "));
+    setIndustriesText((targets.industries ?? []).join(", "));
+    if (rules.length > 0) setRulesText(rules.join("\n"));
+    setStepIndex(0);
+  }
+
   async function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -682,7 +706,7 @@ export function ProfileWizard({
         return;
       }
 
-      applyExtractedFields(extractBody.data as ProfileExtract);
+      applyResumeExtraction(extractBody.data as ProfileExtract);
       setImportStatus({
         tone: "success",
         text: "Pulled what we could from your resume — review each step below before saving.",
@@ -741,7 +765,7 @@ export function ProfileWizard({
         </p>
       )}
 
-      {!isEditing && stepIndex === 0 && (
+      {stepIndex === 0 && (
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-col gap-2 sm:flex-row">
             <label className={`${secondaryButtonClass} cursor-pointer text-center`}>
