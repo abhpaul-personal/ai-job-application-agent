@@ -57,7 +57,7 @@ const APPLICATION_KIT_SHAPE = `{
   "cvHeadline": "<string>",
   "cvBullets": ["<string>", "<string>", "<string>", "<string>", "<string>"],
   "coverLetter": "<string, follow the candidate's cover letter format instructions below>",
-  "recruiterDm": "<string, under 300 characters>"
+  "recruiterEmail": "<string, a short outreach email (not a chat DM) — a few sentences: one specific hook from the JD, one credibility point, one clear ask>"
 }`;
 
 export function buildKitUserMessage(
@@ -71,7 +71,7 @@ export function buildKitUserMessage(
     APPLICATION_KIT_SHAPE,
     "",
     `Cover letter format instructions: ${formats.coverLetter}`,
-    `Recruiter DM format instructions: ${formats.recruiterDm}`,
+    `Recruiter outreach format instructions: ${formats.recruiterDm}`,
     "",
     "Job description:",
     jd,

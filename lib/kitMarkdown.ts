@@ -13,8 +13,8 @@ export function buildKitMarkdown(kit: ApplicationKit): string {
     "## Cover Letter",
     kit.coverLetter,
     "",
-    "## Recruiter DM",
-    kit.recruiterDm,
+    "## Recruiter Email",
+    kit.recruiterEmail,
     "",
   ].join("\n");
 }

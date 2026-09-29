@@ -94,7 +94,7 @@ describe("ApplicationKitSchema", () => {
     cvHeadline: "Senior PM — 0-to-1 platforms & scale",
     cvBullets: ["one", "two", "three", "four", "five"],
     coverLetter: "Dear Hiring Team, ...",
-    recruiterDm: "Hi, saw your JD...",
+    recruiterEmail: "Hi, saw your JD...",
   };
 
   it("accepts a well-formed application kit", () => {
@@ -116,10 +116,10 @@ describe("ApplicationKitSchema", () => {
     ).toThrow();
   });
 
-  it("rejects a recruiterDm over 300 characters", () => {
+  it("accepts a recruiterEmail longer than 300 characters (no cap, unlike the old DM)", () => {
     expect(() =>
-      ApplicationKitSchema.parse({ ...validKit, recruiterDm: "x".repeat(301) }),
-    ).toThrow();
+      ApplicationKitSchema.parse({ ...validKit, recruiterEmail: "x".repeat(301) }),
+    ).not.toThrow();
   });
 });
 

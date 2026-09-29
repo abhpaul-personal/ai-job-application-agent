@@ -15,10 +15,9 @@ import {
   textareaClass,
 } from "@/components/uiClasses";
 import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
+import { buildDocxBytes, buildPdfBytes } from "@/lib/kitExport";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
 import type { ApplicationKit, FitAnalysis, Profile } from "@/lib/schema";
-
-const RECRUITER_DM_LIMIT = 300;
 
 function narrowToTrack(profile: Profile, track: string): Profile {
   return track
@@ -124,37 +123,79 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
   );
 }
 
-const KIT_TABS = ["cv", "cover-letter", "recruiter-dm"] as const;
+const KIT_TABS = ["cv", "cover-letter", "recruiter-email"] as const;
 type KitTab = (typeof KIT_TABS)[number];
 const KIT_TAB_LABELS: Record<KitTab, string> = {
   cv: "CV Content",
   "cover-letter": "Cover letter",
-  "recruiter-dm": "Recruiter DM",
+  "recruiter-email": "Recruiter email",
 };
+
+function downloadBytes(bytes: Uint8Array, filename: string, mimeType: string) {
+  // TS's DOM lib types BlobPart against Uint8Array<ArrayBuffer> specifically;
+  // Uint8Array's own return type is the wider Uint8Array<ArrayBufferLike> as
+  // of TS 5.7+. Structurally identical at runtime — a plain cast is safe.
+  const blob = new Blob([bytes as unknown as BlobPart], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Shared by the CV and cover-letter tabs — both just need "download this
+// title + these body lines as PDF/DOCX", so the pair of buttons and their
+// handlers live in one place instead of twice.
+function FileExportButtons({
+  title,
+  bodyParagraphs,
+  filenameBase,
+}: {
+  title: string;
+  bodyParagraphs: string[];
+  filenameBase: string;
+}) {
+  async function handleExport(format: "pdf" | "docx") {
+    if (format === "pdf") {
+      downloadBytes(buildPdfBytes(title, bodyParagraphs), `${filenameBase}.pdf`, "application/pdf");
+    } else {
+      const bytes = await buildDocxBytes(title, bodyParagraphs);
+      downloadBytes(
+        bytes,
+        `${filenameBase}.docx`,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      );
+    }
+  }
+
+  return (
+    <div className="flex gap-2">
+      <button type="button" className={secondaryButtonClass} onClick={() => handleExport("pdf")}>
+        Download as PDF
+      </button>
+      <button type="button" className={secondaryButtonClass} onClick={() => handleExport("docx")}>
+        Download as DOCX
+      </button>
+    </div>
+  );
+}
 
 function ApplicationKitView({
   kit,
-  recruiterDmDraft,
-  onRecruiterDmChange,
+  recruiterEmailDraft,
+  onRecruiterEmailChange,
 }: {
   kit: ApplicationKit;
-  recruiterDmDraft: string;
-  onRecruiterDmChange: (value: string) => void;
+  recruiterEmailDraft: string;
+  onRecruiterEmailChange: (value: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<KitTab>("cv");
-  const dmLength = recruiterDmDraft.length;
-  const overLimit = dmLength > RECRUITER_DM_LIMIT;
   const cvText = [kit.cvHeadline, "", ...kit.cvBullets.map((b) => `- ${b}`)].join("\n");
 
-  function handleDownload() {
-    const markdown = buildKitMarkdown({ ...kit, recruiterDm: recruiterDmDraft });
-    const blob = new Blob([markdown], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "application-kit.md";
-    a.click();
-    URL.revokeObjectURL(url);
+  function handleDownloadMarkdown() {
+    const markdown = buildKitMarkdown({ ...kit, recruiterEmail: recruiterEmailDraft });
+    downloadBytes(new TextEncoder().encode(markdown), "application-kit.md", "text/markdown");
   }
 
   return (
@@ -191,37 +232,43 @@ function ApplicationKitView({
               ))}
             </ul>
           </div>
-          <CopyButton text={cvText} />
+          <div className="flex flex-wrap gap-2">
+            <CopyButton text={cvText} />
+            <FileExportButtons
+              title={kit.cvHeadline}
+              bodyParagraphs={kit.cvBullets.map((b) => `• ${b}`)}
+              filenameBase="cv"
+            />
+          </div>
         </div>
       )}
 
       {activeTab === "cover-letter" && (
         <div className="flex flex-col gap-3">
           <p className="whitespace-pre-wrap text-sm">{kit.coverLetter}</p>
-          <CopyButton text={kit.coverLetter} />
+          <div className="flex flex-wrap gap-2">
+            <CopyButton text={kit.coverLetter} />
+            <FileExportButtons
+              title="Cover Letter"
+              bodyParagraphs={kit.coverLetter.split("\n")}
+              filenameBase="cover-letter"
+            />
+          </div>
         </div>
       )}
 
-      {activeTab === "recruiter-dm" && (
+      {activeTab === "recruiter-email" && (
         <div className="flex flex-col gap-3">
           <textarea
             className={textareaClass}
-            value={recruiterDmDraft}
-            onChange={(e) => onRecruiterDmChange(e.target.value)}
+            value={recruiterEmailDraft}
+            onChange={(e) => onRecruiterEmailChange(e.target.value)}
           />
-          <p
-            className={`text-xs ${
-              overLimit ? "font-medium text-fit-low" : "text-text-secondary"
-            }`}
-          >
-            {dmLength} / {RECRUITER_DM_LIMIT}
-            {overLimit ? ` — ${dmLength - RECRUITER_DM_LIMIT} characters over the limit` : ""}
-          </p>
-          <CopyButton text={recruiterDmDraft} />
+          <CopyButton text={recruiterEmailDraft} />
         </div>
       )}
 
-      <button type="button" className={secondaryButtonClass} onClick={handleDownload}>
+      <button type="button" className={secondaryButtonClass} onClick={handleDownloadMarkdown}>
         Download kit as Markdown
       </button>
     </div>
@@ -240,7 +287,7 @@ export default function AgentPage() {
   const [kit, setKit] = useState<ApplicationKit | null>(null);
   const [kitStatus, setKitStatus] = useState<"idle" | "loading" | "error">("idle");
   const [kitErrorMessage, setKitErrorMessage] = useState("");
-  const [recruiterDmDraft, setRecruiterDmDraft] = useState("");
+  const [recruiterEmailDraft, setRecruiterEmailDraft] = useState("");
   const [weeklyCount, setWeeklyCount] = useState(0);
   // The JD as it was when the current kit was generated, not the live
   // textarea — so later edits to jd (before the "did you apply?" prompt is
@@ -342,7 +389,7 @@ export default function AgentPage() {
       const newKit = body.data as ApplicationKit;
       setKit(newKit);
       setKitJd(jd);
-      setRecruiterDmDraft(newKit.recruiterDm);
+      setRecruiterEmailDraft(newKit.recruiterEmail);
       setKitStatus("idle");
     } catch {
       setKitStatus("error");
@@ -464,8 +511,8 @@ export default function AgentPage() {
           <>
             <ApplicationKitView
               kit={kit}
-              recruiterDmDraft={recruiterDmDraft}
-              onRecruiterDmChange={setRecruiterDmDraft}
+              recruiterEmailDraft={recruiterEmailDraft}
+              onRecruiterEmailChange={setRecruiterEmailDraft}
             />
             <KitAppliedPrompt key={kitJd} jd={kitJd} fallbackRole={selectedTrack} />
           </>

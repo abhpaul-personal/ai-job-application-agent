@@ -99,7 +99,7 @@ export const ApplicationKitSchema = z.object({
   cvHeadline: z.string(),
   cvBullets: z.string().array().length(5),
   coverLetter: z.string(),
-  recruiterDm: z.string().max(300),
+  recruiterEmail: z.string(),
 });
 
 export type ApplicationKit = z.infer<typeof ApplicationKitSchema>;

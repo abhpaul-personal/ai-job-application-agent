@@ -6,7 +6,7 @@ const kit: ApplicationKit = {
   cvHeadline: "Senior PM — 0-to-1 platforms & scale",
   cvBullets: ["one", "two", "three", "four", "five"],
   coverLetter: "Dear Hiring Team, ...",
-  recruiterDm: "Hi, saw your JD for the checkout role...",
+  recruiterEmail: "Hi, saw your JD for the checkout role...",
 };
 
 describe("buildKitMarkdown", () => {
@@ -15,7 +15,7 @@ describe("buildKitMarkdown", () => {
     expect(md).toContain("## CV Headline");
     expect(md).toContain("## CV Bullets");
     expect(md).toContain("## Cover Letter");
-    expect(md).toContain("## Recruiter DM");
+    expect(md).toContain("## Recruiter Email");
   });
 
   it("renders every bullet as a markdown list item", () => {
@@ -25,10 +25,10 @@ describe("buildKitMarkdown", () => {
     }
   });
 
-  it("includes the headline, cover letter, and recruiter DM verbatim", () => {
+  it("includes the headline, cover letter, and recruiter email verbatim", () => {
     const md = buildKitMarkdown(kit);
     expect(md).toContain(kit.cvHeadline);
     expect(md).toContain(kit.coverLetter);
-    expect(md).toContain(kit.recruiterDm);
+    expect(md).toContain(kit.recruiterEmail);
   });
 });

@@ -44,6 +44,13 @@ describe("buildKitUserMessage", () => {
     expect(message).toContain(formats.coverLetter);
     expect(message).toContain(formats.recruiterDm);
   });
+
+  it("asks for recruiterEmail as an outreach email, not a character-capped DM", () => {
+    const message = buildKitUserMessage("Senior PM role at Acme Corp.", analysis, formats);
+    expect(message).toContain("recruiterEmail");
+    expect(message).toContain("outreach email");
+    expect(message).not.toContain("under 300 characters");
+  });
 });
 
 describe("buildExtractUserMessage", () => {
