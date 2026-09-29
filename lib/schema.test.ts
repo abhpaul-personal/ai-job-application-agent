@@ -7,6 +7,7 @@ import {
   ChatRequestSchema,
   ChatResponseSchema,
   FitAnalysisSchema,
+  ProfileExtractSchema,
   ProfileSchema,
   TrackerDraftSchema,
   TrackerRecordSchema,
@@ -240,6 +241,47 @@ describe("AgentRequestSchema", () => {
       rawInput: "Got an email from Agoda recruiter about the TPM role, applied yesterday.",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("discriminates a profileExtract-stage request", () => {
+    const result = AgentRequestSchema.safeParse({
+      stage: "profileExtract",
+      rawInput: "Rohan Mehta — Senior Product Manager at DemoCommerce Labs...",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("ProfileExtractSchema", () => {
+  it("accepts a partial extraction with some fields, a story, and no rules", () => {
+    const parsed = ProfileExtractSchema.parse({
+      basics: { name: "Rohan Mehta", currentTitle: "Senior Product Manager" },
+      targets: { seniority: "Senior" },
+      storyBank: [
+        {
+          name: "Checkout Modernisation",
+          one_liner: "Led a zero-downtime checkout migration",
+          metrics: "2M orders/month",
+          themes: ["migration", "scale"],
+        },
+      ],
+    });
+    expect(parsed.basics.name).toBe("Rohan Mehta");
+    expect(parsed.rules).toEqual([]);
+  });
+
+  it("accepts a fully empty object (a resume with nothing extractable)", () => {
+    const parsed = ProfileExtractSchema.parse({});
+    expect(parsed.basics).toEqual({});
+    expect(parsed.targets).toEqual({});
+    expect(parsed.storyBank).toEqual([]);
+    expect(parsed.rules).toEqual([]);
+  });
+
+  it("rejects an invalid workMode value inside targets", () => {
+    expect(() =>
+      ProfileExtractSchema.parse({ targets: { workMode: ["Fully Remote"] } }),
+    ).toThrow();
   });
 });
 

@@ -18,6 +18,10 @@ export const MAX_TOKENS = {
   // A single tracker record's worth of fields — smaller than story-bank
   // extraction since there's exactly one record to fill, not up to 8.
   trackerExtract: 600,
+  // Covers basics + targets + up to 8 story-bank items + rules in one
+  // response — larger than plain story-bank extract (1600) since it's
+  // strictly more fields.
+  profileExtract: 2000,
 } as const;
 
 const FIT_ANALYSIS_SHAPE = `{
@@ -184,6 +188,49 @@ export function buildTrackerExtractUserMessage(rawInput: string, today: string):
     TRACKER_DRAFT_SHAPE,
     "",
     "Pasted text:",
+    rawInput,
+  ].join("\n");
+}
+
+const PROFILE_EXTRACT_SHAPE = `{
+  "basics": {
+    "name": "<string, omit if not stated>",
+    "email": "<string, omit if not stated>",
+    "currentTitle": "<string, omit if not stated>",
+    "currentCompany": "<string, omit if not stated>",
+    "location": "<string, omit if not stated>",
+    "noticePeriodDays": "<number, omit if not stated>",
+    "currentCtcLpa": "<number, omit if not stated — resumes almost never state this>",
+    "expectedCtcMinLpa": "<number, omit if not stated — resumes almost never state this>",
+    "expectedCtcMaxLpa": "<number, omit if not stated — resumes almost never state this>",
+    "relocation": "<string, omit if not stated>"
+  },
+  "targets": {
+    "roleTypes": ["<string>", "omit the whole key if not clearly implied"],
+    "seniority": "<string, omit if not clearly implied>",
+    "industries": ["<string>", "omit the whole key if not clearly implied"],
+    "workMode": ["Onsite" | "Hybrid" | "Remote", "omit the whole key if not stated"],
+    "experienceFraming": "<string, e.g. '8-10 years of product experience' — omit if not clearly implied>"
+  },
+  "storyBank": [{ "name": "<string>", "one_liner": "<string>", "metrics": "<string>", "themes": ["<string>"] }],
+  "rules": ["<string, almost always omit — resumes don't state negotiation constraints>"]
+}`;
+
+export const PROFILE_EXTRACT_SYSTEM_PROMPT = [
+  "You turn a candidate's resume text into a draft profile for their job-application agent.",
+  "Only use facts present in the resume; never invent metrics, titles, dates, or compensation figures.",
+  "Compensation fields (currentCtcLpa, expectedCtcMinLpa, expectedCtcMaxLpa) almost never appear on a resume — leave them out entirely rather than estimating from title or seniority.",
+  "Omit any field, or any whole section, the resume doesn't actually support rather than guessing.",
+].join(" ");
+
+export function buildProfileExtractUserMessage(rawInput: string): string {
+  return [
+    "Extract a draft profile from the following resume text.",
+    "For storyBank, extract at most 8 items — the highest-impact, most distinct achievements.",
+    "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences), omitting any key or whole section you have no basis for:",
+    PROFILE_EXTRACT_SHAPE,
+    "",
+    "Resume text:",
     rawInput,
   ].join("\n");
 }

@@ -6,9 +6,11 @@ import {
   buildChatUserMessage,
   buildExtractUserMessage,
   buildKitUserMessage,
+  buildProfileExtractUserMessage,
   buildTrackerExtractUserMessage,
   EXTRACT_SYSTEM_PROMPT,
   MAX_TOKENS,
+  PROFILE_EXTRACT_SYSTEM_PROMPT,
   TRACKER_EXTRACT_SYSTEM_PROMPT,
 } from "@/lib/agentPrompts";
 import { runAgentStage, type CallModel } from "@/lib/agentStage";
@@ -19,6 +21,7 @@ import {
   ApplicationKitSchema,
   ChatResponseSchema,
   FitAnalysisSchema,
+  ProfileExtractSchema,
   StoryBankSchema,
   TrackerDraftSchema,
   type AgentRequest,
@@ -82,6 +85,13 @@ function runStage(input: AgentRequest, callModel: CallModel) {
           new Date().toISOString().slice(0, 10),
         ),
         schema: TrackerDraftSchema,
+      });
+    case "profileExtract":
+      return runAgentStage({
+        callModel,
+        system: PROFILE_EXTRACT_SYSTEM_PROMPT,
+        userMessage: buildProfileExtractUserMessage(input.rawInput),
+        schema: ProfileExtractSchema,
       });
   }
 }

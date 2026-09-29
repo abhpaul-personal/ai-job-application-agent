@@ -5,7 +5,9 @@ import {
   buildChatUserMessage,
   buildExtractUserMessage,
   buildKitUserMessage,
+  buildProfileExtractUserMessage,
   buildTrackerExtractUserMessage,
+  PROFILE_EXTRACT_SYSTEM_PROMPT,
 } from "./agentPrompts";
 import { compileSystemPrompt } from "./compilePrompt";
 import { defaultProfile } from "./loadProfile";
@@ -143,5 +145,26 @@ describe("buildTrackerExtractUserMessage", () => {
     const message = buildTrackerExtractUserMessage(rawInput, "2026-07-15");
     expect(message).toContain(rawInput);
     expect(message).toContain("2026-07-15");
+  });
+});
+
+describe("buildProfileExtractUserMessage", () => {
+  it("includes the raw resume text verbatim", () => {
+    const rawInput = "Rohan Mehta — Senior Product Manager at DemoCommerce Labs.";
+    expect(buildProfileExtractUserMessage(rawInput)).toContain(rawInput);
+  });
+
+  it("caps story-bank extraction at 8 items, same as the CV-paste flow", () => {
+    expect(buildProfileExtractUserMessage("some resume text")).toContain("at most 8");
+  });
+});
+
+describe("PROFILE_EXTRACT_SYSTEM_PROMPT", () => {
+  it("says never to invent compensation figures", () => {
+    expect(PROFILE_EXTRACT_SYSTEM_PROMPT).toContain("never invent metrics, titles, dates, or compensation figures");
+  });
+
+  it("calls out that resumes almost never state compensation", () => {
+    expect(PROFILE_EXTRACT_SYSTEM_PROMPT).toContain("almost never appear on a resume");
   });
 });

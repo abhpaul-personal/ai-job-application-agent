@@ -16,10 +16,17 @@ import {
   emptyDraft,
   extractImportableFields,
   mergeProfileDraft,
+  type BasicsDraft,
   type ImportedProfileFields,
   type ProfileDraft,
+  type TargetsDraft,
 } from "@/lib/draftProfile";
-import { WorkModeSchema, type Profile, type StoryBankItem } from "@/lib/schema";
+import {
+  WorkModeSchema,
+  type Profile,
+  type ProfileExtract,
+  type StoryBankItem,
+} from "@/lib/schema";
 
 const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
 const WIZARD_IN_PROGRESS_KEY = "aka.wizardInProgress";
@@ -520,6 +527,7 @@ export function ProfileWizard({
     tone: "success" | "info" | "none" | "error";
     text: string;
   } | null>(null);
+  const [resumeStatus, setResumeStatus] = useState<"idle" | "loading">("idle");
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     initialProfile
       ? {
@@ -596,6 +604,28 @@ export function ProfileWizard({
     setDraft((d) => ({ ...d, storyBank: stories }));
   }
 
+  // Shared by JSON import and resume upload — both produce the same
+  // {basics, targets, storyBank, rules} shape and merge into the draft
+  // identically, so the merge itself lives in one place.
+  function applyExtractedFields(fields: {
+    basics: BasicsDraft;
+    targets: TargetsDraft;
+    storyBank: StoryBankItem[];
+    rules: string[];
+  }) {
+    const { basics, targets, storyBank, rules } = fields;
+    setDraft((d) => ({
+      basics: { ...d.basics, ...basics },
+      targets: { ...d.targets, ...targets },
+      storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
+      rules: rules.length > 0 ? rules : d.rules,
+    }));
+    if (targets.roleTypes) setRoleTypesText(targets.roleTypes.join(", "));
+    if (targets.industries) setIndustriesText(targets.industries.join(", "));
+    if (rules.length > 0) setRulesText(rules.join("\n"));
+    setStepIndex(0);
+  }
+
   async function handleImportFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -618,18 +648,53 @@ export function ProfileWizard({
     // skippable field — reported in a plain-language summary below, not
     // treated as a hard import error.
     const result = extractImportableFields(parsedJson);
-    const { basics, targets, storyBank, rules } = result;
-    setDraft((d) => ({
-      basics: { ...d.basics, ...basics },
-      targets: { ...d.targets, ...targets },
-      storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
-      rules: rules.length > 0 ? rules : d.rules,
-    }));
-    if (targets.roleTypes) setRoleTypesText(targets.roleTypes.join(", "));
-    if (targets.industries) setIndustriesText(targets.industries.join(", "));
-    if (rules.length > 0) setRulesText(rules.join("\n"));
+    applyExtractedFields(result);
     setImportStatus(describeImport(result));
-    setStepIndex(0);
+  }
+
+  async function handleResumeUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setImportStatus(null);
+    setResumeStatus("loading");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const textRes = await fetch("/api/resume", { method: "POST", body: formData });
+      const textBody = await textRes.json();
+      if (!textRes.ok) {
+        setImportStatus({ tone: "error", text: textBody.error ?? "Couldn't read that file." });
+        return;
+      }
+
+      const extractRes = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage: "profileExtract", rawInput: textBody.data.text }),
+      });
+      const extractBody = await extractRes.json();
+      if (!extractRes.ok) {
+        setImportStatus({
+          tone: "error",
+          text: extractBody.error ?? "Couldn't extract a profile from that resume.",
+        });
+        return;
+      }
+
+      applyExtractedFields(extractBody.data as ProfileExtract);
+      setImportStatus({
+        tone: "success",
+        text: "Pulled what we could from your resume — review each step below before saving.",
+      });
+    } catch {
+      setImportStatus({
+        tone: "error",
+        text: "Could not reach the server. Check your connection and try again.",
+      });
+    } finally {
+      setResumeStatus("idle");
+    }
   }
 
   async function handleSave() {
@@ -678,19 +743,37 @@ export function ProfileWizard({
 
       {!isEditing && stepIndex === 0 && (
         <div className="flex flex-col gap-1.5">
-          <label className={`${secondaryButtonClass} cursor-pointer text-center`}>
-            Import profile from JSON
-            <input
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={handleImportFile}
-            />
-          </label>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <label className={`${secondaryButtonClass} cursor-pointer text-center`}>
+              {resumeStatus === "loading" ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <Spinner /> Reading your resume…
+                </span>
+              ) : (
+                "Upload resume (PDF/DOCX)"
+              )}
+              <input
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                className="hidden"
+                disabled={resumeStatus === "loading"}
+                onChange={handleResumeUpload}
+              />
+            </label>
+            <label className={`${secondaryButtonClass} cursor-pointer text-center`}>
+              Import profile from JSON
+              <input
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+            </label>
+          </div>
           <p className="text-xs text-text-secondary">
-            Already have a profile exported from this app (or something close)? Import it to
-            pre-fill what matches — anything that doesn&apos;t is left blank for you to fill
-            in, and you can review and edit everything before saving.
+            Upload a resume to pre-fill what it covers, or import a profile already exported
+            from this app. Either way, anything that doesn&apos;t come through is left blank
+            for you to fill in, and you can review and edit everything before saving.
           </p>
           {importStatus && (
             <p

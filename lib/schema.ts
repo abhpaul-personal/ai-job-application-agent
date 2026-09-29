@@ -1,22 +1,28 @@
 import { z } from "zod";
 
-export const BasicsSchema = z
-  .object({
-    name: z.string(),
-    email: z.string().email(),
-    currentTitle: z.string(),
-    currentCompany: z.string(),
-    location: z.string(),
-    noticePeriodDays: z.number().int().nonnegative(),
-    currentCtcLpa: z.number().nonnegative(),
-    expectedCtcMinLpa: z.number().nonnegative(),
-    expectedCtcMaxLpa: z.number().nonnegative(),
-    relocation: z.string(),
-  })
-  .refine((basics) => basics.expectedCtcMaxLpa >= basics.expectedCtcMinLpa, {
+// Split from BasicsSchema (below) so .partial() stays legal — .refine()'s
+// output isn't a ZodObject anymore, so a refined schema can't be partialed
+// directly. ProfileExtractSchema needs the partial version.
+export const BasicsFieldsSchema = z.object({
+  name: z.string(),
+  email: z.string().email(),
+  currentTitle: z.string(),
+  currentCompany: z.string(),
+  location: z.string(),
+  noticePeriodDays: z.number().int().nonnegative(),
+  currentCtcLpa: z.number().nonnegative(),
+  expectedCtcMinLpa: z.number().nonnegative(),
+  expectedCtcMaxLpa: z.number().nonnegative(),
+  relocation: z.string(),
+});
+
+export const BasicsSchema = BasicsFieldsSchema.refine(
+  (basics) => basics.expectedCtcMaxLpa >= basics.expectedCtcMinLpa,
+  {
     message: "expectedCtcMaxLpa must be >= expectedCtcMinLpa",
     path: ["expectedCtcMaxLpa"],
-  });
+  },
+);
 
 export const WorkModeSchema = z.enum(["Onsite", "Hybrid", "Remote"]);
 
@@ -213,12 +219,31 @@ export const TrackerExtractRequestSchema = z.object({
   rawInput: z.string(),
 });
 
+// Resume-extraction response: all fields optional, same "omit what the
+// model didn't find" convention as TrackerDraftSchema — reuses the exact
+// field schemas ProfileSchema validates against, so this stays in sync
+// automatically if a profile field is ever added/renamed.
+export const ProfileExtractSchema = z.object({
+  basics: BasicsFieldsSchema.partial().default({}),
+  targets: TargetsSchema.partial().default({}),
+  storyBank: StoryBankSchema.default([]),
+  rules: RulesSchema.default([]),
+});
+
+export type ProfileExtract = z.infer<typeof ProfileExtractSchema>;
+
+export const ProfileExtractRequestSchema = z.object({
+  stage: z.literal("profileExtract"),
+  rawInput: z.string(),
+});
+
 export const AgentRequestSchema = z.discriminatedUnion("stage", [
   AnalysisRequestSchema,
   KitRequestSchema,
   ExtractRequestSchema,
   ChatRequestSchema,
   TrackerExtractRequestSchema,
+  ProfileExtractRequestSchema,
 ]);
 
 export type AgentRequest = z.infer<typeof AgentRequestSchema>;
