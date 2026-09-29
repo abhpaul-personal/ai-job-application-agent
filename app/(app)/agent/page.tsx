@@ -15,6 +15,7 @@ import {
   textareaClass,
 } from "@/components/uiClasses";
 import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
+import { classifyFitTone, FIT_TONE_TEXT_CLASS } from "@/lib/fitTone";
 import { buildCvDocxBytes, buildCvPdfBytes, buildDocxBytes, buildPdfBytes } from "@/lib/kitExport";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
 import type { ApplicationKit, Cv, FitAnalysis, Profile } from "@/lib/schema";
@@ -55,10 +56,11 @@ const SCAM_FLAG_LABELS: Record<FitAnalysis["scamFlags"][number]["type"], string>
 };
 
 function FitAnalysisView({ analysis }: { analysis: FitAnalysis }) {
+  const toneClass = FIT_TONE_TEXT_CLASS[classifyFitTone(analysis)];
   return (
     <div className={`flex flex-col gap-6 p-5 ${cardClass}`}>
       <div className="flex flex-col gap-1">
-        <span className="text-xl font-semibold">{analysis.verdict}</span>
+        <span className={`text-xl font-semibold ${toneClass}`}>{analysis.verdict}</span>
         <span className="text-sm text-text-secondary">Fit score: {analysis.fitScore} / 100</span>
         <span className="text-sm text-accent-warm">
           This is a starting signal, not a verdict — you decide what to do with it.
@@ -498,7 +500,7 @@ export default function AgentPage() {
           your profile stays right here in your browser.
         </p>
         <Link href="/settings" className={primaryButtonClass}>
-          Set up my agent
+          Set up my profile
         </Link>
       </main>
     );

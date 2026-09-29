@@ -27,7 +27,7 @@ export default function Home() {
       </div>
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link href="/settings" className={primaryButtonClass}>
-          Set up my agent
+          Set up my profile
         </Link>
         <Link href="/agent" className={secondaryButtonClass}>
           Open agent

@@ -1001,7 +1001,7 @@ export function ProfileWizard({
     <div className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-8 px-6 py-12">
       <div className="flex flex-col gap-2 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">
-          {isEditing ? "Edit your agent" : "Set up your agent"}
+          {isEditing ? "Edit your profile" : "Set up your profile"}
         </h1>
         <div className="flex items-center justify-center gap-2">
           {STEPS.map((step, i) => (
@@ -1125,7 +1125,7 @@ export function ProfileWizard({
         </button>
         {isLastStep ? (
           <button type="button" className={primaryButtonClass} onClick={handleSave}>
-            {isEditing ? "Save changes" : "Create my agent"}
+            {isEditing ? "Save changes" : "Create my profile"}
           </button>
         ) : (
           <button

@@ -18,9 +18,9 @@ export function SideNav() {
   const { data: session, status } = useSession();
 
   // hasProfile is `undefined` briefly on first mount (client-only localStorage
-  // read) — falls through to "Set Up My Agent" during that flash, same
+  // read) — falls through to "Set Up My Profile" during that flash, same
   // accepted tradeoff used elsewhere in the app for non-blocking UI state.
-  const tab1Label = hasProfile ? "Agent Settings" : "Set Up My Agent";
+  const tab1Label = hasProfile ? "Profile Settings" : "Set Up My Profile";
   const tab1Active = pathname.startsWith("/settings");
   const tab2Active = pathname.startsWith("/agent");
   const tab3Active = pathname.startsWith("/tracker");
