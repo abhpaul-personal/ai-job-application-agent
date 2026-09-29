@@ -2,9 +2,11 @@ import { z } from "zod";
 import {
   ProfileSchema,
   StoryBankItemSchema,
+  WorkHistoryEntrySchema,
   WorkModeSchema,
   type Profile,
   type StoryBankItem,
+  type WorkHistoryEntry,
 } from "./schema";
 
 export type BasicsDraft = Partial<Profile["basics"]>;
@@ -15,17 +17,27 @@ export interface ProfileDraft {
   targets: TargetsDraft;
   storyBank: StoryBankItem[];
   rules: string[];
+  workHistory: WorkHistoryEntry[];
+  education: string[];
+  certifications: string[];
+  skills: string[];
 }
 
 // Rules starts pre-filled from the defaults (PRD: "Prefilled ... user edits"),
 // unlike basics/targets/storyBank which start blank (PRD: "skippable ...
-// inherits default").
+// inherits default"). workHistory/education/certifications/skills follow
+// storyBank's convention — blank until the user fills them in or a resume
+// upload/JSON import populates them.
 export function emptyDraft(defaults: Profile): ProfileDraft {
   return {
     basics: {},
     targets: {},
     storyBank: [],
     rules: [...defaults.rules],
+    workHistory: [],
+    education: [],
+    certifications: [],
+    skills: [],
   };
 }
 
@@ -48,6 +60,11 @@ export function mergeProfileDraft(draft: ProfileDraft, defaults: Profile): Profi
     storyBank: draft.storyBank.length > 0 ? draft.storyBank : defaults.storyBank,
     rules: draft.rules,
     formats: defaults.formats,
+    workHistory: draft.workHistory.length > 0 ? draft.workHistory : defaults.workHistory,
+    education: draft.education.length > 0 ? draft.education : defaults.education,
+    certifications:
+      draft.certifications.length > 0 ? draft.certifications : defaults.certifications,
+    skills: draft.skills.length > 0 ? draft.skills : defaults.skills,
   };
   return ProfileSchema.parse(merged);
 }
@@ -63,6 +80,9 @@ const BASICS_FIELD_SCHEMAS: { [K in keyof Profile["basics"]]: z.ZodTypeAny } = {
   expectedCtcMinLpa: z.number().nonnegative(),
   expectedCtcMaxLpa: z.number().nonnegative(),
   relocation: z.string(),
+  phone: z.string(),
+  linkedinUrl: z.string(),
+  portfolioUrl: z.string(),
 };
 
 const TARGETS_FIELD_SCHEMAS: { [K in keyof Profile["targets"]]: z.ZodTypeAny } = {
@@ -101,12 +121,22 @@ export interface ImportedProfileFields {
   targets: TargetsDraft;
   storyBank: StoryBankItem[];
   rules: string[];
+  workHistory: WorkHistoryEntry[];
+  education: string[];
+  certifications: string[];
+  skills: string[];
   skipped: {
     basics: string[];
     targets: string[];
     storyBankItems: number;
     rulesEntries: number;
+    workHistoryEntries: number;
   };
+}
+
+function filterStrings(raw: unknown): string[] {
+  const rawArray = Array.isArray(raw) ? raw : [];
+  return rawArray.filter((r): r is string => typeof r === "string" && r.trim() !== "");
 }
 
 // Field-by-field, not ProfileSchema.parse(): an imported file is expected to
@@ -125,16 +155,28 @@ export function extractImportableFields(raw: unknown): ImportedProfileFields {
   );
   const rulesRaw = Array.isArray(source.rules) ? source.rules : [];
   const rules = rulesRaw.filter((r): r is string => typeof r === "string" && r.trim() !== "");
+  const workHistoryRaw = Array.isArray(source.workHistory) ? source.workHistory : [];
+  const workHistory = workHistoryRaw.filter(
+    (item): item is WorkHistoryEntry => WorkHistoryEntrySchema.safeParse(item).success,
+  );
+  const education = filterStrings(source.education);
+  const certifications = filterStrings(source.certifications);
+  const skills = filterStrings(source.skills);
   return {
     basics: basicsResult.valid,
     targets: targetsResult.valid,
     storyBank,
     rules,
+    workHistory,
+    education,
+    certifications,
+    skills,
     skipped: {
       basics: basicsResult.skipped,
       targets: targetsResult.skipped,
       storyBankItems: storyBankRaw.length - storyBank.length,
       rulesEntries: rulesRaw.length - rules.length,
+      workHistoryEntries: workHistoryRaw.length - workHistory.length,
     },
   };
 }

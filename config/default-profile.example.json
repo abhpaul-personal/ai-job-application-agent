@@ -9,7 +9,10 @@
     "currentCtcLpa": 32,
     "expectedCtcMinLpa": 40,
     "expectedCtcMaxLpa": 55,
-    "relocation": "Open to relocation anywhere in India"
+    "relocation": "Open to relocation anywhere in India",
+    "phone": "+91-90000-00000",
+    "linkedinUrl": "linkedin.com/in/rohan-mehta-demo",
+    "portfolioUrl": "rohanmehta-demo.example.com"
   },
   "targets": {
     "roleTypes": ["Senior Product Manager", "Principal Product Manager"],
@@ -48,5 +51,42 @@
   "formats": {
     "coverLetter": "Compact India format: sender details, date, 'Dear Hiring Team,', 2-3 short paragraphs, 3-5 bullet highlights, closing. Plain text.",
     "recruiterDm": "Under 300 characters: one specific hook from the JD, one credibility point, one clear ask."
-  }
+  },
+  "workHistory": [
+    {
+      "role": "Senior Product Manager",
+      "company": "DemoCommerce Labs",
+      "location": "Bengaluru, India",
+      "startDate": "Jan 2022",
+      "endDate": "Present",
+      "bullets": [
+        "Built a partner-integration platform from zero to 40 enterprise partners with 99.9% API uptime in 6 months.",
+        "Led migration of legacy checkout serving 2M monthly orders with zero downtime and a 30% latency reduction.",
+        "Delivered privacy-compliance readiness across 5 product lines, passing audit on the first attempt."
+      ]
+    },
+    {
+      "role": "Product Manager",
+      "company": "ShopFlow Technologies",
+      "location": "Bengaluru, India",
+      "startDate": "Jun 2018",
+      "endDate": "Dec 2021",
+      "bullets": [
+        "Owned the seller-onboarding funnel for a B2C marketplace, cutting time-to-first-listing by 40%.",
+        "Partnered with engineering to ship a fraud-detection review queue, reducing chargebacks by 22%."
+      ]
+    }
+  ],
+  "education": [
+    "MBA, Product Management — Demo Institute of Management — 2018",
+    "B.Tech, Computer Science — Demo Institute of Technology — 2014"
+  ],
+  "certifications": [
+    "Certified Scrum Product Owner (CSPO) — Scrum Alliance — 2020"
+  ],
+  "skills": [
+    "Product Leadership: Roadmapping, OKRs, Stakeholder Management, Go-to-Market",
+    "Platform and API: REST APIs, Schema Validation, Partner Integrations",
+    "Tools: Jira, Figma, Looker, SQL"
+  ]
 }

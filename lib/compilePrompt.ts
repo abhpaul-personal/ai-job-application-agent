@@ -36,6 +36,30 @@ function renderStoryBank(storyBank: Profile["storyBank"]): string {
     .join("\n");
 }
 
+// This is the anti-fabrication backbone for CV generation (prompt 6b): the
+// model can only select/reorder/emphasize entries it can actually see here
+// — never invent a role, employer, or date. Same "empty is a valid state,
+// say so plainly" convention as renderStoryBank.
+function renderWorkHistory(workHistory: Profile["workHistory"]): string {
+  if (workHistory.length === 0) return "(no work history entries provided)";
+  return workHistory
+    .map((entry) => {
+      const bullets = entry.bullets.map((b) => `   - ${b}`).join("\n");
+      return [
+        `${entry.role}, ${entry.company} (${entry.location}) — ${entry.startDate} to ${entry.endDate}`,
+        bullets,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    })
+    .join("\n");
+}
+
+function renderStringList(label: string, items: string[]): string {
+  if (items.length === 0) return `${label}: (none provided)`;
+  return [`${label}:`, ...items.map((item) => `- ${item}`)].join("\n");
+}
+
 function renderCandidateGroundTruth(profile: Profile): string {
   return [
     "## Candidate ground truth",
@@ -45,6 +69,15 @@ function renderCandidateGroundTruth(profile: Profile): string {
     "",
     "Story bank:",
     renderStoryBank(profile.storyBank),
+    "",
+    "Work history:",
+    renderWorkHistory(profile.workHistory),
+    "",
+    renderStringList("Education", profile.education),
+    "",
+    renderStringList("Certifications", profile.certifications),
+    "",
+    renderStringList("Skills", profile.skills),
   ].join("\n");
 }
 

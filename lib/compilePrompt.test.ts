@@ -30,4 +30,13 @@ describe("compileSystemPrompt", () => {
     expect(prompt).not.toContain("Story 9");
     expect(prompt).not.toContain("Story 10");
   });
+
+  it("includes work history, education, certifications, and skills as ground truth", () => {
+    const prompt = compileSystemPrompt(defaultProfile);
+    expect(prompt).toContain(defaultProfile.workHistory[0].company);
+    expect(prompt).toContain(defaultProfile.workHistory[0].role);
+    expect(prompt).toContain(defaultProfile.education[0]);
+    expect(prompt).toContain(defaultProfile.certifications[0]);
+    expect(prompt).toContain(defaultProfile.skills[0]);
+  });
 });

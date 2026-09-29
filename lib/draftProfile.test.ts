@@ -9,6 +9,10 @@ describe("emptyDraft", () => {
     expect(draft.basics).toEqual({});
     expect(draft.targets).toEqual({});
     expect(draft.storyBank).toEqual([]);
+    expect(draft.workHistory).toEqual([]);
+    expect(draft.education).toEqual([]);
+    expect(draft.certifications).toEqual([]);
+    expect(draft.skills).toEqual([]);
   });
 });
 
@@ -57,6 +61,30 @@ describe("mergeProfileDraft", () => {
     );
   });
 
+  it("uses the draft's work history when non-empty, otherwise falls back to defaults", () => {
+    const filledDraft: ProfileDraft = {
+      ...emptyDraft(defaultProfile),
+      workHistory: [
+        {
+          role: "Custom Role",
+          company: "Custom Co",
+          location: "Remote",
+          startDate: "Jan 2020",
+          endDate: "Present",
+          bullets: ["Did a thing"],
+        },
+      ],
+    };
+    expect(mergeProfileDraft(filledDraft, defaultProfile).workHistory).toEqual(
+      filledDraft.workHistory,
+    );
+
+    const blankDraft = emptyDraft(defaultProfile);
+    expect(mergeProfileDraft(blankDraft, defaultProfile).workHistory).toEqual(
+      defaultProfile.workHistory,
+    );
+  });
+
   it("always takes formats from defaults (no formats step)", () => {
     const draft = emptyDraft(defaultProfile);
     expect(mergeProfileDraft(draft, defaultProfile).formats).toEqual(
@@ -72,12 +100,33 @@ describe("extractImportableFields", () => {
     expect(result.targets).toEqual(defaultProfile.targets);
     expect(result.storyBank).toEqual(defaultProfile.storyBank);
     expect(result.rules).toEqual(defaultProfile.rules);
+    expect(result.workHistory).toEqual(defaultProfile.workHistory);
+    expect(result.education).toEqual(defaultProfile.education);
+    expect(result.certifications).toEqual(defaultProfile.certifications);
+    expect(result.skills).toEqual(defaultProfile.skills);
     expect(result.skipped).toEqual({
       basics: [],
       targets: [],
       storyBankItems: 0,
       rulesEntries: 0,
+      workHistoryEntries: 0,
     });
+  });
+
+  it("drops work-history entries that don't validate, keeps ones that do, and counts the drop", () => {
+    const raw = {
+      ...defaultProfile,
+      workHistory: [defaultProfile.workHistory[0], { role: "Missing fields" }],
+    };
+    const result = extractImportableFields(raw);
+    expect(result.workHistory).toEqual([defaultProfile.workHistory[0]]);
+    expect(result.skipped.workHistoryEntries).toBe(1);
+  });
+
+  it("filters blank/non-string entries out of education/certifications/skills", () => {
+    const raw = { education: ["Real degree", "  ", 42, null] };
+    const result = extractImportableFields(raw);
+    expect(result.education).toEqual(["Real degree"]);
   });
 
   it("drops only the invalid field, keeping the rest of a valid section, and reports it as skipped", () => {
@@ -124,6 +173,10 @@ describe("extractImportableFields", () => {
     expect(result.targets).toEqual({});
     expect(result.storyBank).toEqual([]);
     expect(result.rules).toEqual([]);
+    expect(result.workHistory).toEqual([]);
+    expect(result.education).toEqual([]);
+    expect(result.certifications).toEqual([]);
+    expect(result.skills).toEqual([]);
   });
 
   it("returns everything empty for null", () => {
@@ -132,5 +185,9 @@ describe("extractImportableFields", () => {
     expect(result.targets).toEqual({});
     expect(result.storyBank).toEqual([]);
     expect(result.rules).toEqual([]);
+    expect(result.workHistory).toEqual([]);
+    expect(result.education).toEqual([]);
+    expect(result.certifications).toEqual([]);
+    expect(result.skills).toEqual([]);
   });
 });

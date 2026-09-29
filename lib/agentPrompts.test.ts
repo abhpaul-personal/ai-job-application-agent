@@ -51,6 +51,21 @@ describe("buildKitUserMessage", () => {
     expect(message).toContain("outreach email");
     expect(message).not.toContain("under 300 characters");
   });
+
+  it("asks for the new structured cv shape, not a flat headline + bullets", () => {
+    const message = buildKitUserMessage("Senior PM role at Acme Corp.", analysis, formats);
+    expect(message).toContain("header");
+    expect(message).toContain("coreCompetencies");
+    expect(message).toContain("experience");
+    expect(message).not.toContain("cvHeadline");
+    expect(message).not.toContain("cvBullets");
+  });
+
+  it("includes explicit anti-fabrication instructions for the cv sections", () => {
+    const message = buildKitUserMessage("Senior PM role at Acme Corp.", analysis, formats);
+    expect(message).toContain("never invent");
+    expect(message).toContain("selection");
+  });
 });
 
 describe("buildExtractUserMessage", () => {

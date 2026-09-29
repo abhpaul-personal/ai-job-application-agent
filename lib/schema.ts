@@ -14,6 +14,11 @@ export const BasicsFieldsSchema = z.object({
   expectedCtcMinLpa: z.number().nonnegative(),
   expectedCtcMaxLpa: z.number().nonnegative(),
   relocation: z.string(),
+  // CV header contact/links — defaulted so profiles saved before these
+  // existed keep parsing with blank values, no migration needed.
+  phone: z.string().default(""),
+  linkedinUrl: z.string().default(""),
+  portfolioUrl: z.string().default(""),
 });
 
 export const BasicsSchema = BasicsFieldsSchema.refine(
@@ -45,6 +50,26 @@ export const StoryBankSchema = StoryBankItemSchema.array();
 
 export const RulesSchema = z.string().array();
 
+// Structured because the CV renderer needs to style role/company and dates
+// differently — a single free-text line per job can't cleanly split apart
+// for that. Education/certifications/skills stay one-formatted-line-per-
+// entry (below), the same convention RulesSchema already established.
+export const WorkHistoryEntrySchema = z.object({
+  role: z.string(),
+  company: z.string(),
+  location: z.string(),
+  startDate: z.string(),
+  endDate: z.string(), // free text — "Present" is a valid value
+  bullets: z.string().array(),
+});
+
+export const WorkHistorySchema = WorkHistoryEntrySchema.array();
+export type WorkHistoryEntry = z.infer<typeof WorkHistoryEntrySchema>;
+
+export const EducationSchema = z.string().array();
+export const CertificationsSchema = z.string().array();
+export const SkillsSchema = z.string().array();
+
 export const FormatsSchema = z.object({
   coverLetter: z.string(),
   recruiterDm: z.string(),
@@ -56,6 +81,13 @@ export const ProfileSchema = z.object({
   storyBank: StoryBankSchema,
   rules: RulesSchema,
   formats: FormatsSchema,
+  // All defaulted to empty — a profile saved before prompt 6b simply lacks
+  // these keys and parses straight through, same migration-by-default
+  // pattern as TrackerRecordSchema's entryOrigin.
+  workHistory: WorkHistorySchema.default([]),
+  education: EducationSchema.default([]),
+  certifications: CertificationsSchema.default([]),
+  skills: SkillsSchema.default([]),
 });
 
 export const PROFILE_STORAGE_KEY = "aka.profile";
@@ -95,9 +127,33 @@ export const FitAnalysisSchema = z.object({
 
 export type FitAnalysis = z.infer<typeof FitAnalysisSchema>;
 
+export const CvHeaderSchema = z.object({
+  name: z.string(),
+  title: z.string(), // the AI-tailored headline, e.g. today's cvHeadline
+  contactLine: z.string(), // e.g. "Bengaluru, India | +91... | email | linkedin.com/in/..."
+});
+
+export const CvExperienceEntrySchema = z.object({
+  role: z.string(),
+  company: z.string(),
+  dates: z.string(),
+  bullets: z.string().array(),
+});
+
+export const CvSchema = z.object({
+  header: CvHeaderSchema,
+  summary: z.string(),
+  coreCompetencies: z.string().array(),
+  experience: CvExperienceEntrySchema.array(),
+  education: z.string().array(),
+  certifications: z.string().array(),
+  skills: z.string().array(),
+});
+
+export type Cv = z.infer<typeof CvSchema>;
+
 export const ApplicationKitSchema = z.object({
-  cvHeadline: z.string(),
-  cvBullets: z.string().array().length(5),
+  cv: CvSchema,
   coverLetter: z.string(),
   recruiterEmail: z.string(),
 });
@@ -228,6 +284,10 @@ export const ProfileExtractSchema = z.object({
   targets: TargetsSchema.partial().default({}),
   storyBank: StoryBankSchema.default([]),
   rules: RulesSchema.default([]),
+  workHistory: WorkHistorySchema.default([]),
+  education: EducationSchema.default([]),
+  certifications: CertificationsSchema.default([]),
+  skills: SkillsSchema.default([]),
 });
 
 export type ProfileExtract = z.infer<typeof ProfileExtractSchema>;

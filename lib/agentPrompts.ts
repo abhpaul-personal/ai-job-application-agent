@@ -54,11 +54,33 @@ export function buildAnalysisUserMessage(jd: string): string {
 }
 
 const APPLICATION_KIT_SHAPE = `{
-  "cvHeadline": "<string>",
-  "cvBullets": ["<string>", "<string>", "<string>", "<string>", "<string>"],
+  "cv": {
+    "header": {
+      "name": "<string, from the candidate's basics.name>",
+      "title": "<string, a headline tailored to this JD, e.g. 'Senior Product Manager | Payments | Platform'>",
+      "contactLine": "<string, e.g. 'Bengaluru, India | +91... | email@x.com | linkedin.com/in/...' — build from basics/links given below, omit any piece not provided>"
+    },
+    "summary": "<string, 3-5 sentences, tailored to this JD>",
+    "coreCompetencies": ["<string, drawn from the candidate's skills/story-bank themes, reordered/selected for relevance to this JD>"],
+    "experience": [{
+      "role": "<string, copied verbatim from a work-history entry below>",
+      "company": "<string, copied verbatim>",
+      "dates": "<string, copied verbatim, e.g. 'Sep 2024 — Present'>",
+      "bullets": ["<string, selected/rewritten for JD relevance, but every fact must trace to that entry's real bullets — never invent a metric or outcome>"]
+    }],
+    "education": ["<string, copied verbatim from the candidate's education list>"],
+    "certifications": ["<string, copied verbatim from the candidate's certifications list>"],
+    "skills": ["<string, copied verbatim from the candidate's skills list, reordered for relevance>"]
+  },
   "coverLetter": "<string, follow the candidate's cover letter format instructions below>",
   "recruiterEmail": "<string, a short outreach email (not a chat DM) — a few sentences: one specific hook from the JD, one credibility point, one clear ask>"
 }`;
+
+const CV_ANTI_FABRICATION_INSTRUCTION = [
+  "The cv.experience array must include one entry per work-history entry given in your system prompt (or the most relevant subset if the candidate has many) — never a role, company, or date that isn't in that list, and never altered dates or employer names.",
+  "cv.education, cv.certifications, and cv.skills must only ever contain items copied from the candidate's actual lists — omit the whole section if the candidate provided none, never invent an entry to fill a gap.",
+  "Tailoring means selection, reordering, and emphasis (which bullets to lead with, which skills to surface first) — never inventing new content.",
+].join(" ");
 
 export function buildKitUserMessage(
   jd: string,
@@ -67,7 +89,8 @@ export function buildKitUserMessage(
 ): string {
   return [
     "Draft an application kit for the following job description, building on the approved fit analysis below.",
-    "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences), with exactly 5 cvBullets:",
+    CV_ANTI_FABRICATION_INSTRUCTION,
+    "Respond with ONLY a single JSON object in exactly this shape (no prose, no markdown fences):",
     APPLICATION_KIT_SHAPE,
     "",
     `Cover letter format instructions: ${formats.coverLetter}`,
@@ -213,13 +236,25 @@ const PROFILE_EXTRACT_SHAPE = `{
     "experienceFraming": "<string, e.g. '8-10 years of product experience' — omit if not clearly implied>"
   },
   "storyBank": [{ "name": "<string>", "one_liner": "<string>", "metrics": "<string>", "themes": ["<string>"] }],
-  "rules": ["<string, almost always omit — resumes don't state negotiation constraints>"]
+  "rules": ["<string, almost always omit — resumes don't state negotiation constraints>"],
+  "workHistory": [{
+    "role": "<string>",
+    "company": "<string>",
+    "location": "<string, omit field if not stated>",
+    "startDate": "<string, as written on the resume, e.g. 'Sep 2024'>",
+    "endDate": "<string, as written on the resume, e.g. 'Present' or 'Apr 2024'>",
+    "bullets": ["<string, copied/lightly cleaned from the resume's own bullets for that role — never invented>"]
+  }],
+  "education": ["<string, one formatted line per entry, e.g. 'MBA, Project Management — Sikkim Manipal University — 2012'>"],
+  "certifications": ["<string, one formatted line per entry, e.g. 'A-CSPO — Scrum Alliance — 2021'>"],
+  "skills": ["<string, one formatted line per category, e.g. 'Platform and API: REST APIs, Idempotency, Circuit Breaker'>"]
 }`;
 
 export const PROFILE_EXTRACT_SYSTEM_PROMPT = [
   "You turn a candidate's resume text into a draft profile for their job-application agent.",
   "Only use facts present in the resume; never invent metrics, titles, dates, or compensation figures.",
   "Compensation fields (currentCtcLpa, expectedCtcMinLpa, expectedCtcMaxLpa) almost never appear on a resume — leave them out entirely rather than estimating from title or seniority.",
+  "For workHistory, extract every distinct role with its actual dates and company — never merge two roles into one or invent a date range.",
   "Omit any field, or any whole section, the resume doesn't actually support rather than guessing.",
 ].join(" ");
 

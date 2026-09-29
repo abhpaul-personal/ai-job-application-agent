@@ -15,9 +15,30 @@ import {
   textareaClass,
 } from "@/components/uiClasses";
 import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
-import { buildDocxBytes, buildPdfBytes } from "@/lib/kitExport";
+import { buildCvDocxBytes, buildCvPdfBytes, buildDocxBytes, buildPdfBytes } from "@/lib/kitExport";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
-import type { ApplicationKit, FitAnalysis, Profile } from "@/lib/schema";
+import type { ApplicationKit, Cv, FitAnalysis, Profile } from "@/lib/schema";
+
+// Plain-text flattening for the CV tab's Copy button — the PDF/DOCX
+// builders in lib/kitExport.ts own the actual document formatting.
+function buildCvPlainText(cv: Cv): string {
+  const lines = [cv.header.name, cv.header.title, cv.header.contactLine, ""];
+  if (cv.summary) lines.push("PROFESSIONAL SUMMARY", cv.summary, "");
+  if (cv.coreCompetencies.length > 0) {
+    lines.push("CORE COMPETENCIES", cv.coreCompetencies.join(" | "), "");
+  }
+  if (cv.experience.length > 0) {
+    lines.push("PROFESSIONAL EXPERIENCE");
+    for (const entry of cv.experience) {
+      lines.push(`${entry.role} — ${entry.company}`, entry.dates);
+      lines.push(...entry.bullets.map((b) => `- ${b}`), "");
+    }
+  }
+  if (cv.education.length > 0) lines.push("EDUCATION", ...cv.education, "");
+  if (cv.certifications.length > 0) lines.push("CERTIFICATIONS", ...cv.certifications, "");
+  if (cv.skills.length > 0) lines.push("TECHNICAL SKILLS", ...cv.skills, "");
+  return lines.join("\n");
+}
 
 function narrowToTrack(profile: Profile, track: string): Profile {
   return track
@@ -144,23 +165,24 @@ function downloadBytes(bytes: Uint8Array, filename: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-// Shared by the CV and cover-letter tabs — both just need "download this
-// title + these body lines as PDF/DOCX", so the pair of buttons and their
-// handlers live in one place instead of twice.
+// Shared by the CV and cover-letter tabs — each just supplies its own
+// byte-builder functions (CV gets its structure-aware builders, cover
+// letter gets the generic title+paragraphs ones), so the pair of buttons
+// and the download plumbing live in one place instead of twice.
 function FileExportButtons({
-  title,
-  bodyParagraphs,
   filenameBase,
+  buildPdf,
+  buildDocx,
 }: {
-  title: string;
-  bodyParagraphs: string[];
   filenameBase: string;
+  buildPdf: () => Uint8Array;
+  buildDocx: () => Promise<Uint8Array>;
 }) {
   async function handleExport(format: "pdf" | "docx") {
     if (format === "pdf") {
-      downloadBytes(buildPdfBytes(title, bodyParagraphs), `${filenameBase}.pdf`, "application/pdf");
+      downloadBytes(buildPdf(), `${filenameBase}.pdf`, "application/pdf");
     } else {
-      const bytes = await buildDocxBytes(title, bodyParagraphs);
+      const bytes = await buildDocx();
       downloadBytes(
         bytes,
         `${filenameBase}.docx`,
@@ -191,7 +213,7 @@ function ApplicationKitView({
   onRecruiterEmailChange: (value: string) => void;
 }) {
   const [activeTab, setActiveTab] = useState<KitTab>("cv");
-  const cvText = [kit.cvHeadline, "", ...kit.cvBullets.map((b) => `- ${b}`)].join("\n");
+  const cvText = buildCvPlainText(kit.cv);
 
   function handleDownloadMarkdown() {
     const markdown = buildKitMarkdown({ ...kit, recruiterEmail: recruiterEmailDraft });
@@ -219,25 +241,87 @@ function ApplicationKitView({
       </div>
 
       {activeTab === "cv" && (
-        <div className="flex flex-col gap-3">
-          <div>
-            <span className={labelClass}>Headline</span>
-            <p className="text-sm">{kit.cvHeadline}</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1 text-center">
+            <span className="text-lg font-semibold">{kit.cv.header.name}</span>
+            <span className="text-sm text-text-secondary">{kit.cv.header.title}</span>
+            {kit.cv.header.contactLine && (
+              <span className="text-xs text-text-secondary">{kit.cv.header.contactLine}</span>
+            )}
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className={labelClass}>Bullets</span>
-            <ul className="flex flex-col gap-1 text-sm">
-              {kit.cvBullets.map((bullet, i) => (
-                <li key={i}>{bullet}</li>
+
+          {kit.cv.summary && (
+            <div>
+              <span className={labelClass}>Professional Summary</span>
+              <p className="text-sm">{kit.cv.summary}</p>
+            </div>
+          )}
+
+          {kit.cv.coreCompetencies.length > 0 && (
+            <div>
+              <span className={labelClass}>Core Competencies</span>
+              <p className="text-sm">{kit.cv.coreCompetencies.join(" | ")}</p>
+            </div>
+          )}
+
+          {kit.cv.experience.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <span className={labelClass}>Professional Experience</span>
+              {kit.cv.experience.map((entry, i) => (
+                <div key={i} className="flex flex-col gap-1">
+                  <p className="text-sm font-medium">
+                    {entry.role} — {entry.company}
+                  </p>
+                  <p className="text-xs italic text-text-secondary">{entry.dates}</p>
+                  <ul className="flex flex-col gap-1 text-sm">
+                    {entry.bullets.map((bullet, j) => (
+                      <li key={j}>{bullet}</li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
-          </div>
+            </div>
+          )}
+
+          {kit.cv.education.length > 0 && (
+            <div>
+              <span className={labelClass}>Education</span>
+              <ul className="text-sm">
+                {kit.cv.education.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {kit.cv.certifications.length > 0 && (
+            <div>
+              <span className={labelClass}>Certifications</span>
+              <ul className="text-sm">
+                {kit.cv.certifications.map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {kit.cv.skills.length > 0 && (
+            <div>
+              <span className={labelClass}>Technical Skills</span>
+              <ul className="text-sm">
+                {kit.cv.skills.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <CopyButton text={cvText} />
             <FileExportButtons
-              title={kit.cvHeadline}
-              bodyParagraphs={kit.cvBullets.map((b) => `• ${b}`)}
               filenameBase="cv"
+              buildPdf={() => buildCvPdfBytes(kit.cv)}
+              buildDocx={() => buildCvDocxBytes(kit.cv)}
             />
           </div>
         </div>
@@ -249,9 +333,9 @@ function ApplicationKitView({
           <div className="flex flex-wrap gap-2">
             <CopyButton text={kit.coverLetter} />
             <FileExportButtons
-              title="Cover Letter"
-              bodyParagraphs={kit.coverLetter.split("\n")}
               filenameBase="cover-letter"
+              buildPdf={() => buildPdfBytes("Cover Letter", kit.coverLetter.split("\n"))}
+              buildDocx={() => buildDocxBytes("Cover Letter", kit.coverLetter.split("\n"))}
             />
           </div>
         </div>

@@ -6,6 +6,7 @@ import {
   ApplicationKitSchema,
   ChatRequestSchema,
   ChatResponseSchema,
+  CvSchema,
   FitAnalysisSchema,
   ProfileExtractSchema,
   ProfileSchema,
@@ -91,8 +92,26 @@ describe("FitAnalysisSchema", () => {
 
 describe("ApplicationKitSchema", () => {
   const validKit = {
-    cvHeadline: "Senior PM — 0-to-1 platforms & scale",
-    cvBullets: ["one", "two", "three", "four", "five"],
+    cv: {
+      header: {
+        name: "Rohan Mehta",
+        title: "Senior PM — 0-to-1 platforms & scale",
+        contactLine: "Bengaluru, India | rohan@example.com",
+      },
+      summary: "Product leader with 8+ years shipping 0-to-1 platforms.",
+      coreCompetencies: ["0-to-1 ownership", "API platform strategy"],
+      experience: [
+        {
+          role: "Senior Product Manager",
+          company: "DemoCommerce Labs",
+          dates: "Jan 2022 — Present",
+          bullets: ["Built a partner-integration platform from zero to 40 partners."],
+        },
+      ],
+      education: ["MBA, Product Management — Demo Institute — 2018"],
+      certifications: ["CSPO — Scrum Alliance — 2020"],
+      skills: ["Product Leadership: Roadmapping, OKRs"],
+    },
     coverLetter: "Dear Hiring Team, ...",
     recruiterEmail: "Hi, saw your JD...",
   };
@@ -101,24 +120,32 @@ describe("ApplicationKitSchema", () => {
     expect(() => ApplicationKitSchema.parse(validKit)).not.toThrow();
   });
 
-  it("rejects cvBullets with fewer than 5 items", () => {
+  it("rejects a cv missing its header", () => {
+    const { header: _header, ...cvWithoutHeader } = validKit.cv;
     expect(() =>
-      ApplicationKitSchema.parse({ ...validKit, cvBullets: ["one", "two"] }),
-    ).toThrow();
-  });
-
-  it("rejects cvBullets with more than 5 items", () => {
-    expect(() =>
-      ApplicationKitSchema.parse({
-        ...validKit,
-        cvBullets: ["one", "two", "three", "four", "five", "six"],
-      }),
+      ApplicationKitSchema.parse({ ...validKit, cv: cvWithoutHeader }),
     ).toThrow();
   });
 
   it("accepts a recruiterEmail longer than 300 characters (no cap, unlike the old DM)", () => {
     expect(() =>
       ApplicationKitSchema.parse({ ...validKit, recruiterEmail: "x".repeat(301) }),
+    ).not.toThrow();
+  });
+});
+
+describe("CvSchema", () => {
+  it("accepts empty education/certifications/skills/experience arrays", () => {
+    expect(() =>
+      CvSchema.parse({
+        header: { name: "A", title: "B", contactLine: "" },
+        summary: "Summary",
+        coreCompetencies: [],
+        experience: [],
+        education: [],
+        certifications: [],
+        skills: [],
+      }),
     ).not.toThrow();
   });
 });

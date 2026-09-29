@@ -26,9 +26,10 @@ import {
   type Profile,
   type ProfileExtract,
   type StoryBankItem,
+  type WorkHistoryEntry,
 } from "@/lib/schema";
 
-const STEPS = ["Basics", "Targets", "Experience", "Rules", "Review"] as const;
+const STEPS = ["Basics", "Targets", "Experience", "Career History", "Rules", "Review"] as const;
 const WIZARD_IN_PROGRESS_KEY = "aka.wizardInProgress";
 
 const IMPORT_FIELD_LABELS: Record<string, string> = {
@@ -221,6 +222,37 @@ function BasicsStep({
           value={draft.relocation ?? ""}
           placeholder={defaults.relocation}
           onChange={(e) => onChange({ relocation: e.target.value })}
+        />
+      </Field>
+      <p className="text-xs text-text-secondary">
+        The fields below appear in the CV header the kit generates — optional, but worth
+        filling in.
+      </p>
+      <Field label="Phone">
+        <input
+          type="text"
+          className={inputClass}
+          value={draft.phone ?? ""}
+          placeholder={defaults.phone}
+          onChange={(e) => onChange({ phone: e.target.value })}
+        />
+      </Field>
+      <Field label="LinkedIn URL">
+        <input
+          type="text"
+          className={inputClass}
+          value={draft.linkedinUrl ?? ""}
+          placeholder={defaults.linkedinUrl}
+          onChange={(e) => onChange({ linkedinUrl: e.target.value })}
+        />
+      </Field>
+      <Field label="Portfolio URL">
+        <input
+          type="text"
+          className={inputClass}
+          value={draft.portfolioUrl ?? ""}
+          placeholder={defaults.portfolioUrl}
+          onChange={(e) => onChange({ portfolioUrl: e.target.value })}
         />
       </Field>
     </div>
@@ -459,6 +491,174 @@ function ExperienceStep({
   );
 }
 
+function WorkHistoryEditor({
+  entries,
+  onChange,
+}: {
+  entries: WorkHistoryEntry[];
+  onChange: (entries: WorkHistoryEntry[]) => void;
+}) {
+  function updateEntry(index: number, patch: Partial<WorkHistoryEntry>) {
+    onChange(entries.map((e, i) => (i === index ? { ...e, ...patch } : e)));
+  }
+
+  function removeEntry(index: number) {
+    onChange(entries.filter((_, i) => i !== index));
+  }
+
+  function addEntry() {
+    onChange([
+      ...entries,
+      { role: "", company: "", location: "", startDate: "", endDate: "", bullets: [] },
+    ]);
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {entries.map((entry, i) => (
+        <div key={i} className="flex flex-col gap-3 rounded-2xl border border-foreground/10 p-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Role">
+              <input
+                type="text"
+                className={inputClass}
+                value={entry.role}
+                onChange={(e) => updateEntry(i, { role: e.target.value })}
+              />
+            </Field>
+            <Field label="Company">
+              <input
+                type="text"
+                className={inputClass}
+                value={entry.company}
+                onChange={(e) => updateEntry(i, { company: e.target.value })}
+              />
+            </Field>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Location">
+              <input
+                type="text"
+                className={inputClass}
+                value={entry.location}
+                onChange={(e) => updateEntry(i, { location: e.target.value })}
+              />
+            </Field>
+            <Field label="Start date">
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Sep 2024"
+                value={entry.startDate}
+                onChange={(e) => updateEntry(i, { startDate: e.target.value })}
+              />
+            </Field>
+            <Field label="End date">
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="Present"
+                value={entry.endDate}
+                onChange={(e) => updateEntry(i, { endDate: e.target.value })}
+              />
+            </Field>
+          </div>
+          <Field label="Bullets (one per line)">
+            <textarea
+              className={textareaClass}
+              value={entry.bullets.join("\n")}
+              onChange={(e) => updateEntry(i, { bullets: e.target.value.split("\n") })}
+            />
+          </Field>
+          <button
+            type="button"
+            className={secondaryButtonClass}
+            onClick={() => removeEntry(i)}
+          >
+            Remove this role
+          </button>
+        </div>
+      ))}
+      <button type="button" className={secondaryButtonClass} onClick={addEntry}>
+        Add another role
+      </button>
+    </div>
+  );
+}
+
+function CareerHistoryStep({
+  workHistory,
+  onWorkHistoryChange,
+  educationText,
+  onEducationChange,
+  certificationsText,
+  onCertificationsChange,
+  skillsText,
+  onSkillsChange,
+  isEditing,
+}: {
+  workHistory: WorkHistoryEntry[];
+  onWorkHistoryChange: (entries: WorkHistoryEntry[]) => void;
+  educationText: string;
+  onEducationChange: (value: string) => void;
+  certificationsText: string;
+  onCertificationsChange: (value: string) => void;
+  skillsText: string;
+  onSkillsChange: (value: string) => void;
+  isEditing: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <span className={labelClass}>Work history</span>
+        <p className="text-xs text-text-secondary">
+          Dated roles the CV generator draws from — real employers and dates only, tailoring
+          means selecting/reordering these, never inventing new ones.
+        </p>
+        <WorkHistoryEditor entries={workHistory} onChange={onWorkHistoryChange} />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Field label="Education (one per line)">
+          <textarea
+            className={textareaClass}
+            value={educationText}
+            onChange={(e) => onEducationChange(e.target.value)}
+            placeholder="MBA, Project Management — Sikkim Manipal University — 2012"
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Field label="Certifications (one per line)">
+          <textarea
+            className={textareaClass}
+            value={certificationsText}
+            onChange={(e) => onCertificationsChange(e.target.value)}
+            placeholder="A-CSPO — Scrum Alliance — 2021"
+          />
+        </Field>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Field label="Technical skills (one per line)">
+          <textarea
+            className={textareaClass}
+            value={skillsText}
+            onChange={(e) => onSkillsChange(e.target.value)}
+            placeholder="Platform and API: REST APIs, Idempotency, Circuit Breaker"
+          />
+        </Field>
+        <p className="text-xs text-text-secondary">
+          {isEditing
+            ? "Prefilled from your current profile — edit or remove any line."
+            : "Optional — a resume upload or JSON import can fill these in for you."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function RulesStep({
   rulesText,
   onChange,
@@ -535,11 +735,27 @@ export function ProfileWizard({
           targets: initialProfile.targets,
           storyBank: initialProfile.storyBank,
           rules: [...initialProfile.rules],
+          workHistory: initialProfile.workHistory,
+          education: initialProfile.education,
+          certifications: initialProfile.certifications,
+          skills: initialProfile.skills,
         }
       : emptyDraft(defaultProfile),
   );
   const [rulesText, setRulesText] = useState(() =>
     (initialProfile ?? defaultProfile).rules.join("\n"),
+  );
+  // Unlike rulesText (deliberately pre-filled from defaults for a new
+  // profile), these start blank for a fresh wizard — same "skippable,
+  // inherits nothing" convention as storyBank/workHistory.
+  const [educationText, setEducationText] = useState(() =>
+    (initialProfile?.education ?? []).join("\n"),
+  );
+  const [certificationsText, setCertificationsText] = useState(() =>
+    (initialProfile?.certifications ?? []).join("\n"),
+  );
+  const [skillsText, setSkillsText] = useState(() =>
+    (initialProfile?.skills ?? []).join("\n"),
   );
   const [roleTypesText, setRoleTypesText] = useState(() =>
     (initialProfile?.targets.roleTypes ?? []).join(", "),
@@ -584,13 +800,34 @@ export function ProfileWizard({
         .split("\n")
         .map((r) => r.trim())
         .filter(Boolean),
+      education: educationText
+        .split("\n")
+        .map((e) => e.trim())
+        .filter(Boolean),
+      certifications: certificationsText
+        .split("\n")
+        .map((c) => c.trim())
+        .filter(Boolean),
+      skills: skillsText
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      // Bullets are kept as a live string[] while typing (join/split on the
+      // textarea directly, unlike the text-state fields above) so the
+      // per-entry editor doesn't need parallel raw-text state per row —
+      // trimmed/filtered here at merge time instead, so a stray blank line
+      // mid-edit doesn't disrupt typing.
+      workHistory: draft.workHistory.map((entry) => ({
+        ...entry,
+        bullets: entry.bullets.map((b) => b.trim()).filter(Boolean),
+      })),
     };
     try {
       return mergeProfileDraft(cleanedDraft, defaultProfile);
     } catch {
       return defaultProfile;
     }
-  }, [draft, rulesText, defaultProfile]);
+  }, [draft, rulesText, educationText, certificationsText, skillsText, defaultProfile]);
 
   function updateBasics(patch: Partial<Profile["basics"]>) {
     setDraft((d) => ({ ...d, basics: { ...d.basics, ...patch } }));
@@ -605,48 +842,71 @@ export function ProfileWizard({
   }
 
   // Shared by JSON import and resume upload — both produce the same
-  // {basics, targets, storyBank, rules} shape and merge into the draft
-  // identically, so the merge itself lives in one place.
+  // {basics, targets, storyBank, rules, workHistory, education,
+  // certifications, skills} shape and merge into the draft identically, so
+  // the merge itself lives in one place.
   function applyExtractedFields(fields: {
     basics: BasicsDraft;
     targets: TargetsDraft;
     storyBank: StoryBankItem[];
     rules: string[];
+    workHistory: WorkHistoryEntry[];
+    education: string[];
+    certifications: string[];
+    skills: string[];
   }) {
-    const { basics, targets, storyBank, rules } = fields;
+    const { basics, targets, storyBank, rules, workHistory, education, certifications, skills } =
+      fields;
     setDraft((d) => ({
       basics: { ...d.basics, ...basics },
       targets: { ...d.targets, ...targets },
       storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
       rules: rules.length > 0 ? rules : d.rules,
+      workHistory: workHistory.length > 0 ? workHistory : d.workHistory,
+      education: education.length > 0 ? education : d.education,
+      certifications: certifications.length > 0 ? certifications : d.certifications,
+      skills: skills.length > 0 ? skills : d.skills,
     }));
     if (targets.roleTypes) setRoleTypesText(targets.roleTypes.join(", "));
     if (targets.industries) setIndustriesText(targets.industries.join(", "));
     if (rules.length > 0) setRulesText(rules.join("\n"));
+    if (education.length > 0) setEducationText(education.join("\n"));
+    if (certifications.length > 0) setCertificationsText(certifications.join("\n"));
+    if (skills.length > 0) setSkillsText(skills.join("\n"));
     setStepIndex(0);
   }
 
   // Resume upload gets its own apply function rather than reusing
   // applyExtractedFields: a resume describes "this is my current state," so
-  // basics/targets fully replace the draft — a field this resume doesn't
-  // mention goes blank, never silently keeps a previous resume's (or the
-  // saved profile's) stale value. storyBank/rules keep the merge-style
-  // "only replace if this extraction found something" fallback deliberately:
-  // resumes essentially never state hard rules (lib/agentPrompts.ts's
-  // PROFILE_EXTRACT_SYSTEM_PROMPT already tells the model as much), so
-  // wiping a curated story bank or rules list on every re-upload would
-  // trade this bug for a worse one.
+  // basics/targets/workHistory/education/certifications/skills — the
+  // factual, exhaustively-resume-described sections — fully replace the
+  // draft; a field this resume doesn't mention goes blank, never silently
+  // keeps a previous resume's (or the saved profile's) stale value.
+  // storyBank/rules keep the merge-style "only replace if this extraction
+  // found something" fallback deliberately: they're curated content that
+  // can come from sources beyond the latest resume (guided prompts, manual
+  // entry) or never from a resume at all (rules almost never appear on
+  // one — lib/agentPrompts.ts's PROFILE_EXTRACT_SYSTEM_PROMPT says as much)
+  // — wiping either on every re-upload would trade this bug for a worse one.
   function applyResumeExtraction(fields: ProfileExtract) {
-    const { basics, targets, storyBank, rules } = fields;
+    const { basics, targets, storyBank, rules, workHistory, education, certifications, skills } =
+      fields;
     setDraft((d) => ({
       basics,
       targets,
       storyBank: storyBank.length > 0 ? storyBank : d.storyBank,
       rules: rules.length > 0 ? rules : d.rules,
+      workHistory,
+      education,
+      certifications,
+      skills,
     }));
     setRoleTypesText((targets.roleTypes ?? []).join(", "));
     setIndustriesText((targets.industries ?? []).join(", "));
     if (rules.length > 0) setRulesText(rules.join("\n"));
+    setEducationText(education.join("\n"));
+    setCertificationsText(certifications.join("\n"));
+    setSkillsText(skills.join("\n"));
     setStepIndex(0);
   }
 
@@ -837,9 +1097,22 @@ export function ProfileWizard({
         />
       )}
       {stepIndex === 3 && (
+        <CareerHistoryStep
+          workHistory={draft.workHistory}
+          onWorkHistoryChange={(workHistory) => setDraft((d) => ({ ...d, workHistory }))}
+          educationText={educationText}
+          onEducationChange={setEducationText}
+          certificationsText={certificationsText}
+          onCertificationsChange={setCertificationsText}
+          skillsText={skillsText}
+          onSkillsChange={setSkillsText}
+          isEditing={isEditing}
+        />
+      )}
+      {stepIndex === 4 && (
         <RulesStep rulesText={rulesText} onChange={setRulesText} isEditing={isEditing} />
       )}
-      {stepIndex === 4 && <ReviewStep profile={mergedProfile} />}
+      {stepIndex === 5 && <ReviewStep profile={mergedProfile} />}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         <button
