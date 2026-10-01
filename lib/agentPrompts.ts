@@ -4,7 +4,16 @@ import type { FitAnalysis, Profile, TrackerRecord } from "./schema";
 // Capped, not exact, token budgets — keeps per-run cost down per PRD §6.
 export const MAX_TOKENS = {
   analysis: 1200,
-  kit: 1800,
+  // 1800 was sized for the old flat cvHeadline + 5 bullets shape (prompt 5b).
+  // Prompt 6b's structured cv (header, summary, competencies, a full
+  // experience array with per-role bullets, education, certifications,
+  // skills) plus the cover letter and recruiter email in the same response
+  // is substantially more verbose — a full-length profile with several roles
+  // can plausibly approach the old cap, which would truncate mid-JSON and
+  // (after the repair retry hits the same cap) surface as a 422, or in the
+  // worst case a still-parseable-but-quietly-shorter object. Raised with
+  // headroom rather than tuned to a single observed case.
+  kit: 3000,
   // Extraction has no cap on how many story-bank items the model tries to
   // generate from a long/dense CV, so a large candidate history can run the
   // response past the budget mid-array — the repair retry reuses the same

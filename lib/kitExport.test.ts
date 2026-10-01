@@ -1,5 +1,12 @@
+import { extractText, getDocumentProxy } from "unpdf";
 import { describe, expect, it } from "vitest";
-import { buildCvDocxBytes, buildCvPdfBytes, buildDocxBytes, buildPdfBytes } from "./kitExport";
+import {
+  buildCvDocxBytes,
+  buildCvPdfBytes,
+  buildDocxBytes,
+  buildPdfBytes,
+  splitIntoParagraphBlocks,
+} from "./kitExport";
 import type { Cv } from "./schema";
 
 const cv: Cv = {
@@ -70,5 +77,92 @@ describe("buildCvDocxBytes", () => {
     expect(bytes.length).toBeGreaterThan(0);
     expect(bytes[0]).toBe(0x50); // 'P'
     expect(bytes[1]).toBe(0x4b); // 'K'
+  });
+});
+
+// A full-length profile (several roles, each with multiple bullets, plus
+// education/certifications/skills) easily exceeds one page — exactly the
+// case the original test suite never exercised, since its one fixture CV
+// (above) comfortably fits on a single page and so could never have caught
+// a regression in the addPage()/ensureSpace() pagination logic.
+function longCv(): Cv {
+  const roles = [
+    ["Senior Product Manager", "Acme Corp", "Jan 2022 to Present"],
+    ["Product Manager", "Beta Inc", "Jun 2018 to Dec 2021"],
+    ["Associate Product Manager", "Gamma LLC", "Jun 2016 to May 2018"],
+    ["Business Analyst", "Delta Co", "Jun 2014 to May 2016"],
+  ] as const;
+  return {
+    header: {
+      name: "Jordan Sample",
+      title: "Senior Product Leader — Platforms & Growth",
+      contactLine: "Bengaluru, India | jordan@example.com",
+    },
+    summary: "A detailed professional summary paragraph. ".repeat(8),
+    coreCompetencies: Array.from({ length: 10 }, (_, i) => `Competency ${i + 1}`),
+    experience: roles.map(([role, company, dates]) => ({
+      role,
+      company,
+      dates,
+      bullets: Array.from(
+        { length: 4 },
+        (_, j) =>
+          `Bullet ${j + 1} for ${role} at ${company} with enough detail to wrap across more than one line of text in the rendered PDF.`,
+      ),
+    })),
+    education: [
+      "MBA, Product Management — Example Institute — 2018",
+      "B.Tech, Computer Science — Example Institute of Technology — 2014",
+    ],
+    certifications: [
+      "Certified Scrum Product Owner (CSPO) — Scrum Alliance — 2020",
+      "PMP — PMI — 2019",
+    ],
+    skills: [
+      "Product Leadership: Roadmapping, OKRs, Stakeholder Management, Go-to-Market",
+      "Platform and API: REST APIs, Schema Validation, Partner Integrations",
+      "Tools: Jira, Figma, Looker, SQL",
+    ],
+  };
+}
+
+describe("buildCvPdfBytes multi-page overflow", () => {
+  it("flows every section onto additional pages instead of dropping them", async () => {
+    const cv = longCv();
+    const bytes = buildCvPdfBytes(cv);
+
+    const pdf = await getDocumentProxy(bytes);
+    expect(pdf.numPages).toBeGreaterThan(1);
+
+    const { text } = await extractText(pdf, { mergePages: true });
+    expect(text).toContain("PROFESSIONAL EXPERIENCE");
+    for (const [, company] of [
+      ["Senior Product Manager", "Acme Corp"],
+      ["Product Manager", "Beta Inc"],
+      ["Associate Product Manager", "Gamma LLC"],
+      ["Business Analyst", "Delta Co"],
+    ]) {
+      expect(text).toContain(company);
+    }
+    expect(text).toContain("EDUCATION");
+    expect(text).toContain("CERTIFICATIONS");
+    expect(text).toContain("TECHNICAL SKILLS");
+    expect(text).toContain("Tools: Jira, Figma, Looker, SQL");
+  });
+});
+
+describe("splitIntoParagraphBlocks", () => {
+  it("keeps a multi-line block (e.g. a sender address) together as one paragraph", () => {
+    const text = "Jordan Sample\nBengaluru, India | jordan@example.com\n\nDear Hiring Team,\n\nBody text.";
+    expect(splitIntoParagraphBlocks(text)).toEqual([
+      "Jordan Sample\nBengaluru, India | jordan@example.com",
+      "Dear Hiring Team,",
+      "Body text.",
+    ]);
+  });
+
+  it("collapses three-or-more blank lines down to a single paragraph break", () => {
+    const text = "First.\n\n\n\nSecond.";
+    expect(splitIntoParagraphBlocks(text)).toEqual(["First.", "Second."]);
   });
 });

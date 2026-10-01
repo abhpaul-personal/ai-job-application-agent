@@ -16,7 +16,13 @@ import {
 } from "@/components/uiClasses";
 import { getWeeklyAnalysisCount, incrementWeeklyAnalysisCount } from "@/lib/effortTracking";
 import { classifyFitTone, FIT_TONE_TEXT_CLASS } from "@/lib/fitTone";
-import { buildCvDocxBytes, buildCvPdfBytes, buildDocxBytes, buildPdfBytes } from "@/lib/kitExport";
+import {
+  buildCvDocxBytes,
+  buildCvPdfBytes,
+  buildDocxBytes,
+  buildPdfBytes,
+  splitIntoParagraphBlocks,
+} from "@/lib/kitExport";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
 import type { ApplicationKit, Cv, FitAnalysis, Profile } from "@/lib/schema";
 
@@ -336,8 +342,12 @@ function ApplicationKitView({
             <CopyButton text={kit.coverLetter} />
             <FileExportButtons
               filenameBase="cover-letter"
-              buildPdf={() => buildPdfBytes("Cover Letter", kit.coverLetter.split("\n"))}
-              buildDocx={() => buildDocxBytes("Cover Letter", kit.coverLetter.split("\n"))}
+              buildPdf={() =>
+                buildPdfBytes("Cover Letter", splitIntoParagraphBlocks(kit.coverLetter))
+              }
+              buildDocx={() =>
+                buildDocxBytes("Cover Letter", splitIntoParagraphBlocks(kit.coverLetter))
+              }
             />
           </div>
         </div>

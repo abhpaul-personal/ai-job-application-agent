@@ -15,6 +15,17 @@ export const authOptions: AuthOptions = {
       clientSecret: process.env.AUTH_GOOGLE_SECRET ?? "",
     }),
   ],
+  // next-auth v4 only auto-detects a secret from `NEXTAUTH_SECRET` — this
+  // project's env var is named AUTH_SECRET (the v5-style name, set that way
+  // in both .env.local and Vercel), so without this explicit mapping
+  // next-auth silently fell back to an ephemeral, auto-generated secret on
+  // every environment. In a single long-running `next dev` process that's
+  // one stable secret for the whole session, so it never surfaced locally.
+  // On Vercel's serverless functions, each cold-started instance generated
+  // its own secret, so a JWT session cookie signed by one instance could
+  // fail to decode on another — the kind of intermittent, production-only
+  // failure this prompt's bug 1 describes.
+  secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   callbacks: {
     async session({ session, token }) {

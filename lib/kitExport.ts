@@ -15,6 +15,24 @@ const PDF_LINE_HEIGHT = 7;
 const PDF_TITLE_SIZE = 16;
 const PDF_BODY_SIZE = 11;
 
+// A letter's raw text has two kinds of line break: a single "\n" within a
+// block that should stay visually tight (the sender's name/location/email,
+// a signature's "Warm regards," + name), and a blank line ("\n\n" or more)
+// marking a genuine new paragraph that deserves a bigger gap. Splitting on
+// every single "\n" (as a naive .split("\n") does) loses that distinction —
+// every line, including the blank separators themselves, ends up treated as
+// its own paragraph and gets the same oversized gap, which is what produced
+// the inconsistent spacing this function's callers were fixing. Splitting
+// only on blank-line boundaries keeps multi-line blocks intact; each
+// resulting block may still contain internal "\n"s, which the PDF/DOCX
+// builders below render as plain line breaks with no extra gap.
+export function splitIntoParagraphBlocks(text: string): string[] {
+  return text
+    .split(/\n{2,}/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+}
+
 // Plain title + body-line builders — used for the cover letter (a single
 // flowing document), not tied to ApplicationKit's shape. The CV gets its
 // own structure-aware builders below, since a CV needs a header block,
@@ -54,6 +72,22 @@ export function buildPdfBytes(title: string, bodyParagraphs: string[]): Uint8Arr
   return new Uint8Array(doc.output("arraybuffer"));
 }
 
+// A "paragraph" here may itself contain embedded "\n" line breaks (e.g. a
+// sender's name/location/email block, kept together as one paragraph by the
+// caller precisely so it does NOT get a between-paragraph gap between each
+// line). docx's Paragraph renders `text` as one literal run with no special
+// handling of "\n", so each internal line becomes its own TextRun joined by
+// an explicit `break`, all inside the same Paragraph — only the paragraph
+// itself carries the `after` spacing, once, regardless of how many lines it
+// contains.
+function paragraphFromBlock(block: string, spacingAfter: number): Paragraph {
+  const lines = block.split("\n");
+  const children = lines.flatMap((line, i) =>
+    i === 0 ? [new TextRun(line)] : [new TextRun({ text: line, break: 1 })],
+  );
+  return new Paragraph({ children, spacing: { after: spacingAfter } });
+}
+
 export async function buildDocxBytes(
   title: string,
   bodyParagraphs: string[],
@@ -63,9 +97,7 @@ export async function buildDocxBytes(
       {
         children: [
           new Paragraph({ text: title, heading: HeadingLevel.HEADING_1 }),
-          ...bodyParagraphs.map(
-            (text) => new Paragraph({ text, spacing: { after: 200 } }),
-          ),
+          ...bodyParagraphs.map((block) => paragraphFromBlock(block, 200)),
         ],
       },
     ],
