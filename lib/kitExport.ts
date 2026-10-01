@@ -33,6 +33,22 @@ export function splitIntoParagraphBlocks(text: string): string[] {
     .filter(Boolean);
 }
 
+// The model's format instructions used to ask for a sender name/location/
+// email/date block above the salutation — in practice this always rendered
+// as a half-filled "[Date]" placeholder, which looks broken rather than
+// professional. The instruction itself has been updated, but a model's
+// compliance with a text instruction isn't guaranteed, so this strips any
+// such block deterministically: everything before the first line that opens
+// the letter (a "Dear ..." salutation) is dropped. If no such line is found
+// the text is returned unchanged, rather than risking eating the whole
+// letter on a format the model didn't follow.
+export function stripCoverLetterHeader(text: string): string {
+  const lines = text.split("\n");
+  const salutationIndex = lines.findIndex((line) => /^dear\b/i.test(line.trim()));
+  if (salutationIndex === -1) return text;
+  return lines.slice(salutationIndex).join("\n").trim();
+}
+
 // Plain title + body-line builders — used for the cover letter (a single
 // flowing document), not tied to ApplicationKit's shape. The CV gets its
 // own structure-aware builders below, since a CV needs a header block,

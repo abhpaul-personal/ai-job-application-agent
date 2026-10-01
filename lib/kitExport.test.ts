@@ -6,6 +6,7 @@ import {
   buildDocxBytes,
   buildPdfBytes,
   splitIntoParagraphBlocks,
+  stripCoverLetterHeader,
 } from "./kitExport";
 import type { Cv } from "./schema";
 
@@ -164,5 +165,28 @@ describe("splitIntoParagraphBlocks", () => {
   it("collapses three-or-more blank lines down to a single paragraph break", () => {
     const text = "First.\n\n\n\nSecond.";
     expect(splitIntoParagraphBlocks(text)).toEqual(["First.", "Second."]);
+  });
+});
+
+describe("stripCoverLetterHeader", () => {
+  it("removes a sender name/location/email/date block above the salutation", () => {
+    const text =
+      "Rohan Mehta\nBengaluru, India\nrohan@example.com\n\n[Date]\n\nDear Hiring Team,\n\nBody text.";
+    expect(stripCoverLetterHeader(text)).toBe("Dear Hiring Team,\n\nBody text.");
+  });
+
+  it("is case-insensitive and matches any salutee name, not just 'Hiring Team'", () => {
+    const text = "Jordan Sample\njordan@example.com\n\ndear Hiring Manager,\n\nBody.";
+    expect(stripCoverLetterHeader(text)).toBe("dear Hiring Manager,\n\nBody.");
+  });
+
+  it("returns the text unchanged when there is no salutation line to anchor on", () => {
+    const text = "Just some body text with no greeting line at all.";
+    expect(stripCoverLetterHeader(text)).toBe(text);
+  });
+
+  it("is a no-op when the letter already starts bare at the salutation", () => {
+    const text = "Dear Hiring Team,\n\nBody text.";
+    expect(stripCoverLetterHeader(text)).toBe(text);
   });
 });

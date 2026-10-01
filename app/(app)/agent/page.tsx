@@ -22,6 +22,7 @@ import {
   buildDocxBytes,
   buildPdfBytes,
   splitIntoParagraphBlocks,
+  stripCoverLetterHeader,
 } from "@/lib/kitExport";
 import { buildKitMarkdown } from "@/lib/kitMarkdown";
 import type { ApplicationKit, Cv, FitAnalysis, Profile } from "@/lib/schema";
@@ -222,9 +223,17 @@ function ApplicationKitView({
 }) {
   const [activeTab, setActiveTab] = useState<KitTab>("cv");
   const cvText = buildCvPlainText(kit.cv);
+  // Deterministic, not just a prompt instruction — see stripCoverLetterHeader's
+  // own comment for why. Applied once here so the preview, copy, and both
+  // exports all show the same bare-at-"Dear ..." letter.
+  const coverLetterBody = stripCoverLetterHeader(kit.coverLetter);
 
   function handleDownloadMarkdown() {
-    const markdown = buildKitMarkdown({ ...kit, recruiterEmail: recruiterEmailDraft });
+    const markdown = buildKitMarkdown({
+      ...kit,
+      coverLetter: coverLetterBody,
+      recruiterEmail: recruiterEmailDraft,
+    });
     downloadBytes(new TextEncoder().encode(markdown), "application-kit.md", "text/markdown");
   }
 
@@ -337,16 +346,16 @@ function ApplicationKitView({
 
       {activeTab === "cover-letter" && (
         <div className="flex flex-col gap-3">
-          <p className="whitespace-pre-wrap text-sm">{kit.coverLetter}</p>
+          <p className="whitespace-pre-wrap text-sm">{coverLetterBody}</p>
           <div className="flex flex-wrap gap-2">
-            <CopyButton text={kit.coverLetter} />
+            <CopyButton text={coverLetterBody} />
             <FileExportButtons
               filenameBase="cover-letter"
               buildPdf={() =>
-                buildPdfBytes("Cover Letter", splitIntoParagraphBlocks(kit.coverLetter))
+                buildPdfBytes("Cover Letter", splitIntoParagraphBlocks(coverLetterBody))
               }
               buildDocx={() =>
-                buildDocxBytes("Cover Letter", splitIntoParagraphBlocks(kit.coverLetter))
+                buildDocxBytes("Cover Letter", splitIntoParagraphBlocks(coverLetterBody))
               }
             />
           </div>
