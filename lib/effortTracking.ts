@@ -1,10 +1,6 @@
-// Storage is injected (defaulting to the real localStorage) so the
-// week-boundary logic is unit-testable without a DOM/jsdom environment —
-// same pattern as agentStage.ts's injected callModel.
-export interface KeyValueStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
+import { safeGet, safeLocalStorage, safeSet, type KeyValueStorage } from "./safeStorage";
+
+export type { KeyValueStorage };
 
 const STORAGE_KEY = "aka.weeklyAnalysisCount";
 
@@ -29,7 +25,7 @@ export function getWeekStartISO(date: Date = new Date()): string {
 }
 
 function readStored(storage: KeyValueStorage): StoredCount | null {
-  const raw = storage.getItem(STORAGE_KEY);
+  const raw = safeGet(storage, STORAGE_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -43,7 +39,7 @@ function readStored(storage: KeyValueStorage): StoredCount | null {
 }
 
 export function getWeeklyAnalysisCount(
-  storage: KeyValueStorage = localStorage,
+  storage: KeyValueStorage = safeLocalStorage,
   now: Date = new Date(),
 ): number {
   const stored = readStored(storage);
@@ -53,12 +49,12 @@ export function getWeeklyAnalysisCount(
 }
 
 export function incrementWeeklyAnalysisCount(
-  storage: KeyValueStorage = localStorage,
+  storage: KeyValueStorage = safeLocalStorage,
   now: Date = new Date(),
 ): number {
   const stored = readStored(storage);
   const currentWeekStart = getWeekStartISO(now);
   const nextCount = stored && stored.weekStart === currentWeekStart ? stored.count + 1 : 1;
-  storage.setItem(STORAGE_KEY, JSON.stringify({ weekStart: currentWeekStart, count: nextCount }));
+  safeSet(storage, STORAGE_KEY, JSON.stringify({ weekStart: currentWeekStart, count: nextCount }));
   return nextCount;
 }

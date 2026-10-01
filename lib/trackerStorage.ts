@@ -1,5 +1,7 @@
+import { safeGet, safeLocalStorage, safeSet, type KeyValueStorage } from "./safeStorage";
 import { TRACKER_STORAGE_KEY, TrackerRecordSchema, type TrackerRecord } from "./schema";
-import type { KeyValueStorage } from "./profileStorage";
+
+export type { KeyValueStorage };
 
 // The blank-record shape shared by the add form (TrackerView.tsx) and the
 // chat-draft merge (trackerChatDraft.ts) — one place for the field list so
@@ -21,7 +23,7 @@ export function emptyTrackerFields(): Omit<TrackerRecord, "id" | "lastUpdatedDat
 }
 
 function readAll(storage: KeyValueStorage): TrackerRecord[] {
-  const raw = storage.getItem(TRACKER_STORAGE_KEY);
+  const raw = safeGet(storage, TRACKER_STORAGE_KEY);
   if (!raw) return [];
   let parsed: unknown;
   try {
@@ -48,10 +50,10 @@ function readAll(storage: KeyValueStorage): TrackerRecord[] {
 }
 
 function writeAll(storage: KeyValueStorage, records: TrackerRecord[]): void {
-  storage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(records));
+  safeSet(storage, TRACKER_STORAGE_KEY, JSON.stringify(records));
 }
 
-export function getTrackerRecords(storage: KeyValueStorage = localStorage): TrackerRecord[] {
+export function getTrackerRecords(storage: KeyValueStorage = safeLocalStorage): TrackerRecord[] {
   return readAll(storage);
 }
 
@@ -59,7 +61,7 @@ export function getTrackerRecords(storage: KeyValueStorage = localStorage): Trac
 // the caller doesn't need to know which case it is.
 export function saveTrackerRecord(
   record: TrackerRecord,
-  storage: KeyValueStorage = localStorage,
+  storage: KeyValueStorage = safeLocalStorage,
 ): void {
   const records = readAll(storage);
   const index = records.findIndex((r) => r.id === record.id);
@@ -71,7 +73,7 @@ export function saveTrackerRecord(
   writeAll(storage, records);
 }
 
-export function deleteTrackerRecord(id: string, storage: KeyValueStorage = localStorage): void {
+export function deleteTrackerRecord(id: string, storage: KeyValueStorage = safeLocalStorage): void {
   writeAll(
     storage,
     readAll(storage).filter((r) => r.id !== id),

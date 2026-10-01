@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import type { KeyValueStorage } from "./profileStorage";
 import {
   deleteTrackerRecord,
   emptyTrackerFields,
   getTrackerRecords,
   saveTrackerRecord,
+  type KeyValueStorage,
 } from "./trackerStorage";
 import { TRACKER_STORAGE_KEY, type TrackerRecord } from "./schema";
 
@@ -19,6 +19,13 @@ function fakeStorage(): KeyValueStorage {
       store.delete(key);
     },
   };
+}
+
+function blockedStorage(): KeyValueStorage {
+  const throwBlocked = () => {
+    throw new DOMException("The operation is insecure.", "SecurityError");
+  };
+  return { getItem: throwBlocked, setItem: throwBlocked, removeItem: throwBlocked };
 }
 
 function record(overrides: Partial<TrackerRecord> = {}): TrackerRecord {
@@ -47,6 +54,10 @@ describe("emptyTrackerFields", () => {
 describe("getTrackerRecords", () => {
   it("returns an empty array before anything is saved", () => {
     expect(getTrackerRecords(fakeStorage())).toEqual([]);
+  });
+
+  it("returns an empty array instead of throwing when storage access is blocked", () => {
+    expect(getTrackerRecords(blockedStorage())).toEqual([]);
   });
 
   it("returns an empty array for corrupted stored JSON", () => {
@@ -78,6 +89,10 @@ describe("saveTrackerRecord", () => {
     const storage = fakeStorage();
     saveTrackerRecord(record(), storage);
     expect(getTrackerRecords(storage)).toEqual([record()]);
+  });
+
+  it("does not throw when storage access is blocked", () => {
+    expect(() => saveTrackerRecord(record(), blockedStorage())).not.toThrow();
   });
 
   it("upserts by id instead of duplicating", () => {

@@ -1,22 +1,18 @@
+import { safeGet, safeLocalStorage, safeSet, type KeyValueStorage } from "./safeStorage";
+
 export type Theme = "light" | "dark";
 
 export const THEME_STORAGE_KEY = "aka.theme";
 
-// Storage is injected (defaulting to the real localStorage) so this is
-// unit-testable without a DOM/jsdom environment — same pattern as
-// lib/effortTracking.ts, lib/rateLimit.ts, and lib/profileStorage.ts.
-export interface KeyValueStorage {
-  getItem(key: string): string | null;
-  setItem(key: string, value: string): void;
-}
+export type { KeyValueStorage };
 
-export function getStoredTheme(storage: KeyValueStorage = localStorage): Theme | null {
-  const raw = storage.getItem(THEME_STORAGE_KEY);
+export function getStoredTheme(storage: KeyValueStorage = safeLocalStorage): Theme | null {
+  const raw = safeGet(storage, THEME_STORAGE_KEY);
   return raw === "dark" || raw === "light" ? raw : null;
 }
 
-export function setStoredTheme(theme: Theme, storage: KeyValueStorage = localStorage): void {
-  storage.setItem(THEME_STORAGE_KEY, theme);
+export function setStoredTheme(theme: Theme, storage: KeyValueStorage = safeLocalStorage): void {
+  safeSet(storage, THEME_STORAGE_KEY, theme);
 }
 
 // A saved preference always wins; prefers-color-scheme is only the default

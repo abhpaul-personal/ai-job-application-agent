@@ -13,7 +13,17 @@ function fakeStorage(): KeyValueStorage {
     setItem: (key, value) => {
       store.set(key, value);
     },
+    removeItem: (key) => {
+      store.delete(key);
+    },
   };
+}
+
+function blockedStorage(): KeyValueStorage {
+  const throwBlocked = () => {
+    throw new DOMException("The operation is insecure.", "SecurityError");
+  };
+  return { getItem: throwBlocked, setItem: throwBlocked, removeItem: throwBlocked };
 }
 
 describe("getWeekStartISO", () => {
@@ -36,6 +46,12 @@ describe("getWeeklyAnalysisCount", () => {
   it("returns 0 when nothing has been stored", () => {
     expect(getWeeklyAnalysisCount(fakeStorage(), new Date("2026-07-15T12:00:00Z"))).toBe(0);
   });
+
+  it("returns 0 instead of throwing when storage access is blocked", () => {
+    expect(
+      getWeeklyAnalysisCount(blockedStorage(), new Date("2026-07-15T12:00:00Z")),
+    ).toBe(0);
+  });
 });
 
 describe("incrementWeeklyAnalysisCount", () => {
@@ -56,5 +72,11 @@ describe("incrementWeeklyAnalysisCount", () => {
     expect(incrementWeeklyAnalysisCount(storage, lastWeek)).toBe(2);
     expect(incrementWeeklyAnalysisCount(storage, thisWeek)).toBe(1);
     expect(getWeeklyAnalysisCount(storage, thisWeek)).toBe(1);
+  });
+
+  it("does not throw when storage access is blocked", () => {
+    expect(() =>
+      incrementWeeklyAnalysisCount(blockedStorage(), new Date("2026-07-15T09:00:00Z")),
+    ).not.toThrow();
   });
 });

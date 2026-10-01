@@ -7,6 +7,7 @@ import {
   clearProfile as clearLocalProfile,
   saveProfile as saveLocalProfile,
 } from "@/lib/profileStorage";
+import { safeGet, safeLocalStorage } from "@/lib/safeStorage";
 import { PROFILE_STORAGE_KEY, type Profile } from "@/lib/schema";
 
 interface ProfileStatus {
@@ -22,24 +23,18 @@ interface ProfileStatus {
 
 const ProfileStatusContext = createContext<ProfileStatus | null>(null);
 
-// localStorage.getItem can throw (not just return null) when storage access
-// itself is blocked — Safari's "Block All Cookies" setting, Safari Private
-// Browsing on older versions, or some privacy extensions all disable web
-// storage entirely rather than just cookies. That throw happening inside a
-// signed-out-only code path (this function is never called for a signed-in
-// user — see refresh()/loadProfile() below) is the root cause of the
-// settings-page crash this function's callers were chasing: an uncaught
-// exception here propagates out of a useEffect and straight to the nearest
-// error boundary. Treating a blocked read as "no profile" is exactly the
-// existing behavior for a missing or malformed value, so this folds into
-// the same code path rather than adding new state.
+// Goes through safeLocalStorage, not the bare `localStorage` global: merely
+// *referencing* `localStorage` can throw when storage is blocked (Safari's
+// "Block All Cookies" setting, some privacy extensions) — before you ever
+// get to call a method on it. That throw happening inside a signed-out-only
+// code path (this function is never called for a signed-in user — see
+// refresh()/loadProfile() below) was the root cause of a settings-page
+// crash — an uncaught exception here propagates out of a useEffect and
+// straight to the nearest error boundary. Treating a blocked read as "no
+// profile" is exactly the existing behavior for a missing or malformed
+// value, so this folds into the same code path rather than adding new state.
 export function readLocalProfile(): Profile | null {
-  let raw: string | null;
-  try {
-    raw = localStorage.getItem(PROFILE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  const raw = safeGet(safeLocalStorage, PROFILE_STORAGE_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as Profile;
@@ -64,12 +59,9 @@ export function ProfileStatusProvider({ children }: { children: ReactNode }) {
     // a blocked-storage throw here happens synchronously inside a useEffect
     // (below), which React sends straight to the nearest error boundary.
     // See readLocalProfile's comment for why this only ever affects signed-
-    // out users. Caught the same way: no access means no profile.
-    try {
-      setHasProfile(!!localStorage.getItem(PROFILE_STORAGE_KEY));
-    } catch {
-      setHasProfile(false);
-    }
+    // out users, and for why this must reference safeLocalStorage rather
+    // than the bare `localStorage` global.
+    setHasProfile(!!safeGet(safeLocalStorage, PROFILE_STORAGE_KEY));
   }
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Spinner } from "@/components/Spinner";
 import { useTrackerStatus } from "@/components/TrackerStatusContext";
 import { inputClass } from "@/components/uiClasses";
+import { safeSessionStorage, safeSet } from "@/lib/safeStorage";
 import { describeTrackerDraft, mergeChatTrackerDraft } from "@/lib/trackerChatDraft";
 import {
   TRACKER_CHAT_DRAFT_HANDOFF_KEY,
@@ -148,7 +149,7 @@ export function ChatAssistant({
 
   function handleEditDraft() {
     if (!pendingDraft) return;
-    sessionStorage.setItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY, JSON.stringify(pendingDraft));
+    safeSet(safeSessionStorage, TRACKER_CHAT_DRAFT_HANDOFF_KEY, JSON.stringify(pendingDraft));
     setPendingDraft(null);
     router.push("/tracker");
   }

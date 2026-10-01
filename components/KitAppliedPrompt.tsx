@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTrackerStatus } from "@/components/TrackerStatusContext";
 import { cardClass, secondaryButtonClass } from "@/components/uiClasses";
+import { safeSessionStorage, safeSet } from "@/lib/safeStorage";
 import { buildKitAppliedRecord, describeTrackerDraft } from "@/lib/trackerChatDraft";
 import { TRACKER_CHAT_DRAFT_HANDOFF_KEY, type TrackerDraft } from "@/lib/schema";
 
@@ -56,7 +57,7 @@ export function KitAppliedPrompt({ jd, fallbackRole }: { jd: string; fallbackRol
 
   function handleEdit() {
     if (!record) return;
-    sessionStorage.setItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY, JSON.stringify(record));
+    safeSet(safeSessionStorage, TRACKER_CHAT_DRAFT_HANDOFF_KEY, JSON.stringify(record));
     setStage("resolved");
     router.push("/tracker");
   }

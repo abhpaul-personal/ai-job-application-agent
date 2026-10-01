@@ -10,6 +10,7 @@ import {
   secondaryButtonClass,
   textareaClass,
 } from "@/components/uiClasses";
+import { safeGet, safeRemove, safeSessionStorage } from "@/lib/safeStorage";
 import { mergeChatTrackerDraft } from "@/lib/trackerChatDraft";
 import { emptyTrackerFields } from "@/lib/trackerStorage";
 import {
@@ -29,9 +30,9 @@ function emptyDraft(): DraftRecord {
 // before navigating to this page, so its confirm/edit/cancel card can hand
 // off to this exact same add/edit form instead of building a second one.
 function readAndClearChatDraftHandoff(): ChatTrackerDraft | null {
-  const raw = sessionStorage.getItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY);
+  const raw = safeGet(safeSessionStorage, TRACKER_CHAT_DRAFT_HANDOFF_KEY);
   if (!raw) return null;
-  sessionStorage.removeItem(TRACKER_CHAT_DRAFT_HANDOFF_KEY);
+  safeRemove(safeSessionStorage, TRACKER_CHAT_DRAFT_HANDOFF_KEY);
   try {
     return JSON.parse(raw) as ChatTrackerDraft;
   } catch {

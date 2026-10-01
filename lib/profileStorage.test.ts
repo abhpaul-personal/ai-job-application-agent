@@ -44,6 +44,9 @@ const profile: Profile = {
     expectedCtcMinLpa: 25,
     expectedCtcMaxLpa: 35,
     relocation: "No",
+    phone: "",
+    linkedinUrl: "",
+    portfolioUrl: "",
   },
   targets: {
     roleTypes: ["Engineer"],
@@ -55,6 +58,10 @@ const profile: Profile = {
   storyBank: [],
   rules: [],
   formats: { coverLetter: "Plain.", recruiterDm: "Short." },
+  workHistory: [],
+  education: [],
+  certifications: [],
+  skills: [],
 };
 
 describe("saveProfile / clearProfile / getProfileUpdatedAt", () => {

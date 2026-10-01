@@ -14,12 +14,30 @@ function fakeStorage(): KeyValueStorage {
     setItem: (key, value) => {
       store.set(key, value);
     },
+    removeItem: (key) => {
+      store.delete(key);
+    },
   };
+}
+
+function blockedStorage(): KeyValueStorage {
+  const throwBlocked = () => {
+    throw new DOMException("The operation is insecure.", "SecurityError");
+  };
+  return { getItem: throwBlocked, setItem: throwBlocked, removeItem: throwBlocked };
 }
 
 describe("getStoredTheme / setStoredTheme", () => {
   it("returns null when nothing has been stored", () => {
     expect(getStoredTheme(fakeStorage())).toBeNull();
+  });
+
+  it("returns null instead of throwing when storage access is blocked", () => {
+    expect(getStoredTheme(blockedStorage())).toBeNull();
+  });
+
+  it("setStoredTheme does not throw when storage access is blocked", () => {
+    expect(() => setStoredTheme("dark", blockedStorage())).not.toThrow();
   });
 
   it("returns null for a corrupted/unexpected stored value", () => {
