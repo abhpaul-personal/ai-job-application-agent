@@ -784,13 +784,22 @@ export function ProfileWizard({
     if (hasCheckedProgressFlag.current) return;
     hasCheckedProgressFlag.current = true;
 
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const wasInProgress = sessionStorage.getItem(WIZARD_IN_PROGRESS_KEY) === "true";
-    if (wasInProgress) {
-      setShowRestartNotice(true);
+    // Storage access can throw outright (Safari's "Block All Cookies",
+    // some privacy extensions) rather than just returning null — an
+    // uncaught throw here, inside a useEffect, would propagate straight to
+    // the nearest error boundary. The restart notice is a nice-to-have;
+    // skip it rather than crash the whole page over it.
+    try {
+      /* eslint-disable react-hooks/set-state-in-effect */
+      const wasInProgress = sessionStorage.getItem(WIZARD_IN_PROGRESS_KEY) === "true";
+      if (wasInProgress) {
+        setShowRestartNotice(true);
+      }
+      sessionStorage.setItem(WIZARD_IN_PROGRESS_KEY, "true");
+      /* eslint-enable react-hooks/set-state-in-effect */
+    } catch {
+      // Nothing to do — see comment above.
     }
-    sessionStorage.setItem(WIZARD_IN_PROGRESS_KEY, "true");
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const mergedProfile = useMemo(() => {
@@ -983,7 +992,11 @@ export function ProfileWizard({
 
   async function handleSave() {
     await saveProfile(mergedProfile);
-    sessionStorage.removeItem(WIZARD_IN_PROGRESS_KEY);
+    try {
+      sessionStorage.removeItem(WIZARD_IN_PROGRESS_KEY);
+    } catch {
+      // Storage blocked — see the mount effect's comment above.
+    }
     refresh();
     onSaved?.(mergedProfile);
     // First-time setup: take the user straight to the main loop. Editing an

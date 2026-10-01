@@ -14,18 +14,37 @@ export interface KeyValueStorage {
 // The one place that writes the profile, so every save path (wizard save,
 // JSON import) stamps the "last updated" timestamp automatically instead of
 // relying on every call site to remember to do it separately.
+//
+// Storage access itself (not just reading a missing key) can throw — Safari's
+// "Block All Cookies" setting and some privacy extensions disable web storage
+// entirely. A signed-out user whose browser does this still has a working
+// anonymous session; it just can't persist locally. Swallow the failure
+// rather than crashing the page over it.
 export function saveProfile(profile: Profile, storage: KeyValueStorage = localStorage): void {
-  storage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
-  storage.setItem(PROFILE_UPDATED_AT_KEY, new Date().toISOString());
+  try {
+    storage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    storage.setItem(PROFILE_UPDATED_AT_KEY, new Date().toISOString());
+  } catch {
+    // Nothing to do — see comment above.
+  }
 }
 
 export function clearProfile(storage: KeyValueStorage = localStorage): void {
-  storage.removeItem(PROFILE_STORAGE_KEY);
-  storage.removeItem(PROFILE_UPDATED_AT_KEY);
+  try {
+    storage.removeItem(PROFILE_STORAGE_KEY);
+    storage.removeItem(PROFILE_UPDATED_AT_KEY);
+  } catch {
+    // Nothing to do — see saveProfile's comment.
+  }
 }
 
 export function getProfileUpdatedAt(storage: KeyValueStorage = localStorage): Date | null {
-  const raw = storage.getItem(PROFILE_UPDATED_AT_KEY);
+  let raw: string | null;
+  try {
+    raw = storage.getItem(PROFILE_UPDATED_AT_KEY);
+  } catch {
+    return null;
+  }
   if (!raw) return null;
   const date = new Date(raw);
   return Number.isNaN(date.getTime()) ? null : date;

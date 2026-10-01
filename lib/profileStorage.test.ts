@@ -21,6 +21,17 @@ function fakeStorage(): KeyValueStorage {
   };
 }
 
+// Simulates Safari's "Block All Cookies" setting and similar privacy
+// extensions, where storage access throws outright rather than just
+// returning null/no-opping — the root cause of the signed-out settings
+// crash these functions are guarded against.
+function blockedStorage(): KeyValueStorage {
+  const throwBlocked = () => {
+    throw new DOMException("The operation is insecure.", "SecurityError");
+  };
+  return { getItem: throwBlocked, setItem: throwBlocked, removeItem: throwBlocked };
+}
+
 const profile: Profile = {
   basics: {
     name: "Test Person",
@@ -66,6 +77,20 @@ describe("saveProfile / clearProfile / getProfileUpdatedAt", () => {
     clearProfile(storage);
     expect(storage.getItem(PROFILE_STORAGE_KEY)).toBeNull();
     expect(getProfileUpdatedAt(storage)).toBeNull();
+  });
+});
+
+describe("blocked storage (e.g. Safari's Block All Cookies)", () => {
+  it("saveProfile does not throw when storage access is blocked", () => {
+    expect(() => saveProfile(profile, blockedStorage())).not.toThrow();
+  });
+
+  it("clearProfile does not throw when storage access is blocked", () => {
+    expect(() => clearProfile(blockedStorage())).not.toThrow();
+  });
+
+  it("getProfileUpdatedAt returns null instead of throwing when storage access is blocked", () => {
+    expect(getProfileUpdatedAt(blockedStorage())).toBeNull();
   });
 });
 
