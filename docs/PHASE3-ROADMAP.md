@@ -1,6 +1,6 @@
 # Phase 3 Roadmap — Pipeline Intelligence (parked)
 
-Status: NOT STARTED. Do not begin until core M1-M6 MVP is stable and shipped. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones. Per `docs/POSITIONING.md` Section 5, this phase's scope now also includes natural-language tracker entry via the existing chat assistant (e.g. "add Agoda TPM, applied yesterday"), with confirm-before-write required before anything commits — see POSITIONING.md Section 3 for the boundary this must respect.
+Status: PARTIALLY SHIPPED. M7 (application tracker, including natural-language entry via the chat assistant per `docs/POSITIONING.md` Section 5, with confirm-before-write per POSITIONING.md Section 3) is done — see git history. M8 (source-tagged insight cards), M9 (cross-source ingestion), and M10 (pipeline pattern observations) are NOT STARTED and remain future work.
 
 ## 1. Problem
 
@@ -8,20 +8,20 @@ A serious job search across 40+ concurrent applications currently requires manua
 
 ## 2. Scope
 
-### M7 — Application tracker (prerequisite for everything else in this phase)
+### M7 — Application tracker (prerequisite for everything else in this phase) — SHIPPED
 - Structured record per application: role, company, track, comp band, source, key dates, status, next action.
 - Add-from-pasted-text flow, since most sources (recruiter emails, LinkedIn posts) have no API.
 - localStorage-based, same privacy pattern as profile data — never leaves the browser, never enters version control or the public demo.
 
-### M8 — Source-tagged insight cards
+### M8 — Source-tagged insight cards — FUTURE
 - Impact-framed insights over tracker data, e.g. "3 of 5 active processes are TPM-track and clustering in the same 2-week window."
 - Every insight tagged with its origin record for trust/verification at a glance.
 
-### M9 — Cross-source ingestion
+### M9 — Cross-source ingestion — FUTURE
 - Email/calendar via connectors where genuinely feasible.
 - LinkedIn has no messaging API — ingestion from LinkedIn stays paste-based by design, not a gap to "fix" later.
 
-### M10 — Pipeline pattern observations
+### M10 — Pipeline pattern observations — FUTURE
 - Aggregate observations across applications (e.g. which sources respond fastest).
 - Worded strictly as observations, never as statistical claims or rates — sample sizes here are too small (tens, not hundreds) to support confidence language.
 

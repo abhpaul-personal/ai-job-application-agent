@@ -1,6 +1,6 @@
-# Phase 4 Roadmap — Accounts & Persisted Profiles (parked)
+# Phase 4 Roadmap — Accounts & Persisted Profiles (shipped)
 
-Status: NOT STARTED. Do not begin until M6 has shipped and deployed. This file exists to capture the plan so it isn't lost — see docs/BUILD_PLAN.md for the active milestones.
+Status: SHIPPED. M11 (Google auth), M12 (Postgres persistence layer), and M13 (tracker persistence for signed-in users) are all done — see git history for the corresponding commits. This file is kept as the design record for the section 2 principle and section 4/5 non-goals/risks, which still apply going forward.
 
 ## 1. Problem
 
